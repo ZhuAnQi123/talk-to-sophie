@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HeroSection } from "./components/HeroSection";
 import { ProjectSection } from "./components/ProjectSection";
 import { typographyVariants } from "./constants";
-import { BarChart3, Database, Bolt, Globe } from "lucide-react";
+import { BarChart3, Database, Zap, Globe } from "lucide-react";
 import { useLanguage } from "./context/LanguageContext";
 
 const LOADER_PHRASES = {
@@ -177,7 +177,7 @@ export default function App() {
                 <span className="text-xs font-bold text-neutral-400 uppercase tracking-tight">
                   {lang === 'zh' ? '上下文压缩率' : 'Context Compression Rate'}
                 </span>
-                <Bolt size={16} className="text-neutral-300" />
+                <Zap size={16} className="text-neutral-300" />
               </div>
               <div className="pt-4">
                 <h4 className="text-4xl font-extrabold tracking-tight text-neutral-950">

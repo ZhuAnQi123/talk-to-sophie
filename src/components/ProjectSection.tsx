@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, Terminal, Cpu, Activity } from "lucide-react";
 import { fluidTransition, PROJECTS_DATA } from "../constants";
 import { useLanguage } from "../context/LanguageContext";
+
+import { AgentFlowCanvas } from "./agent-flow/AgentFlowCanvas";
 
 export const ProjectSection: React.FC = () => {
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -60,6 +62,17 @@ export const ProjectSection: React.FC = () => {
                       ? '请在右侧选择任意研发成果以启动物理拓扑与 Token 控制台模拟'
                       : 'Please select any R&D achievement on the right to launch the physical topology and Token console simulation'}
                   </p>
+                </motion.div>
+              ) : activeProject.id === 3 ? (
+                <motion.div
+                  key="flow-canvas"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.4 }}
+                  className="w-full h-full absolute inset-0"
+                >
+                  <AgentFlowCanvas />
                 </motion.div>
               ) : (
                 <motion.div

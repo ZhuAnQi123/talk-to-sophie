@@ -38,6 +38,7 @@ coverage/
 # Vite cache (if created outside node_modules)
 .vite/
 
-# Internal planning docs (not for repo)
+# AI / internal working docs (not for repo)
+.ai/
 requirement.md
 plan.md
