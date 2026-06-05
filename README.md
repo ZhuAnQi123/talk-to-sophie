@@ -22,6 +22,8 @@
 
 ## 🚀 如何运行
 
+### 前端
+
 ```bash
 # 安装依赖
 npm install
@@ -29,6 +31,38 @@ npm install
 # 启动本地开发服务器
 npm run dev
 ```
+
+### 后端（Python / FastAPI）
+
+后端代码在 `server/` 目录，使用 Python 3 虚拟环境运行。
+
+```bash
+cd server
+
+# 1. 创建并激活虚拟环境（首次需要，之后每次新开终端都要激活）
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 2. 安装依赖（Day 1 最小集）
+pip install fastapi uvicorn pydantic python-dotenv openai
+
+# 3. 配置环境变量（在项目根目录）
+# 复制 .env.example 为 .env，填入 Qwen API Key
+cp ../.env.example ../.env
+
+# 4. 启动后端
+uvicorn main:app --reload
+```
+
+启动成功后，默认地址为 `http://127.0.0.1:8000`。可用以下命令测试聊天接口：
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "介绍一下 Sophie Zhu 的技术栈"}'
+```
+
+> 注意：请使用 `uvicorn`（不是 `unicorn`），且用 `python3 -m venv` 创建虚拟环境，不要直接用系统 `pip3 install`，否则会触发 macOS 的 `externally-managed-environment` 报错。
 
 ## 💡 关于 "Selected LLM Works"
 

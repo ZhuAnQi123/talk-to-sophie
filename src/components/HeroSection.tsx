@@ -41,7 +41,7 @@ export const HeroSection: React.FC = () => {
     { sender: 'ai', text: initialMessage }
   ]);
   const [inputValue, setInputValue] = useState('');
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // 当语言切换时，更新第一条欢迎语
   useEffect(() => {
@@ -54,8 +54,21 @@ export const HeroSection: React.FC = () => {
     });
   }, [lang, initialMessage]);
 
+  // 仅滚动聊天面板内部，避免页面初次加载时被 scrollIntoView 拉到中间
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length <= 1) return;
+    const el = chatScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [messages.length]);
+
+  // Streaming 更新时保持贴底（不影响页面滚动）
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (!last?.isStreaming) return;
+    const el = chatScrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   const handleSend = (textToSend: string) => {
@@ -144,7 +157,10 @@ export const HeroSection: React.FC = () => {
             <span className="text-[10px] bg-neutral-900 text-white px-2 py-0.5 rounded font-mono uppercase tracking-wider">RAG ENABLED</span>
           </div>
 
-          <div className="flex-1 my-4 overflow-y-auto pr-1 space-y-4 scrollbar-thin overflow-x-hidden">
+          <div
+            ref={chatScrollRef}
+            className="flex-1 my-4 overflow-y-auto pr-1 space-y-4 scrollbar-thin overflow-x-hidden"
+          >
             <AnimatePresence initial={false}>
               {messages.map((msg, i) => (
                 <motion.div
@@ -167,7 +183,6 @@ export const HeroSection: React.FC = () => {
                 </motion.div>
               ))}
             </AnimatePresence>
-            <div ref={chatEndRef} />
           </div>
 
           <div className="relative mt-4 flex items-center bg-white rounded-2xl border border-neutral-200 p-1 shadow-sm focus-within:border-neutral-900 transition-all w-full max-w-lg">

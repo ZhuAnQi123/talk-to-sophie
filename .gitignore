@@ -1,6 +1,14 @@
 # Dependencies
 node_modules/
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.egg-info/
+.pytest_cache/
+
 # Build output
 dist/
 dist-ssr/
@@ -42,3 +50,4 @@ coverage/
 .ai/
 requirement.md
 plan.md
+learning-notes/

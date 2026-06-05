@@ -1,0 +1,13 @@
+# 记录项目需要哪些第三方包及版本（类似前端的 package.json）
+fastapi==0.104.1
+uvicorn==0.24.0
+httpx==0.25.0
+python-dotenv==1.0.0
+dashscope
+# 与本地 data/chroma 格式一致；勿与 1.x 混用同一目录
+chromadb>=0.5.23,<0.7
+numpy<2.0.0
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-chroma>=0.1.0
+tavily-python>=0.5.0
