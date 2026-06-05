@@ -1,67 +1,14 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { } from "react";
 import { HeroSection } from "./components/HeroSection";
 import { ProjectSection } from "./components/ProjectSection";
-import { typographyVariants } from "./constants";
 import { BarChart3, Database, Zap, Globe } from "lucide-react";
 import { useLanguage } from "./context/LanguageContext";
 
-const LOADER_PHRASES = {
-  en: [
-    "We are front-end developers.",
-    "We are prompt engineers.",
-    "I bridge human intent and machine intelligence.",
-  ],
-  zh: [
-    "我们是前端开发者。",
-    "我们是提示词工程师。",
-    "我致力于连接人类意图与机器智能。",
-  ]
-};
-
 export default function App() {
-  const [loaderIndex, setLoaderIndex] = useState(0);
-  const [showLoader, setShowLoader] = useState(true);
   const { lang, toggleLang } = useLanguage();
-
-  // 控制蒙太奇开场动画
-  useEffect(() => {
-    if (loaderIndex < LOADER_PHRASES[lang].length) {
-      const timeout = setTimeout(() => {
-        setLoaderIndex((prev) => prev + 1);
-      }, 1600);
-      return () => clearTimeout(timeout);
-    } else {
-      setShowLoader(false);
-    }
-  }, [loaderIndex, lang]);
 
   return (
     <div className="bg-[#FBFBFA] text-neutral-900 overflow-x-hidden min-h-screen font-sans selection:bg-neutral-900 selection:text-white">
-      {/* 1. 复刻视频：大字体形态切换 Loader */}
-      <AnimatePresence>
-        {showLoader && (
-          <motion.div
-            exit={{ y: "-100%" }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 bg-neutral-950 z-50 flex items-center justify-center p-6"
-          >
-            <AnimatePresence mode="wait">
-              <motion.h1
-                key={loaderIndex}
-                variants={typographyVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                className="text-2xl md:text-5xl font-extrabold text-white text-center tracking-tighter max-w-4xl leading-tight"
-              >
-                {LOADER_PHRASES[lang][loaderIndex]}
-              </motion.h1>
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* 固定导航栏 */}
       <nav className="fixed top-0 left-0 w-full z-40 px-6 py-6 md:px-12 flex justify-between items-center mix-blend-difference">
         <div className="text-xl font-extrabold tracking-tighter text-white">
