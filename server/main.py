@@ -4,6 +4,7 @@ from openai import OpenAI
 from pathlib import Path
 import os
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from schemas import ChatRequest, ChatResponse
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -23,7 +24,7 @@ client=OpenAI(
     base_url=os.getenv("QWEN_BASE_URL")
 )
 
-@app.post("/api/chat", response_model=ChatResponse)
+@app.post("/api/chat")
 async def chat(request: ChatRequest):
 
 
@@ -44,9 +45,19 @@ async def chat(request: ChatRequest):
         {"role":"system","content":system_prompt},
         {"role":"user","content":user_prompt}
     ]
-    response = client.chat.completions.create(
-        model=os.getenv("QWEN_MODEL"),
-        messages=messages,
-        stream=False
-    )
-    return {"reply":response.choices[0].message.content}
+    def generate():
+        stream = client.chat.completions.create(
+            model=os.getenv("QWEN_MODEL"),
+            messages=messages,
+            # 当 stream=True 时，返回的不是一个完整的响应对象，
+            # 而是一个生成器（generator），逐步产出数据块。
+            stream=True
+        )
+
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                # yield让函数可以多次返回和交互
+                yield chunk.choices[0].delta.content
+
+
+    return StreamingResponse(generate(), media_type="text/event-stream")

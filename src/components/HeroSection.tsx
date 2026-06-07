@@ -42,45 +42,6 @@ const PRESET_QUESTIONS = {
   },
 };
 
-const KB_RESPONSES: Record<Persona, Record<string, Record<string, string>>> = {
-  sophie: {
-    zh: {
-      介绍一下你的技术栈:
-        "我的前端核心技术栈是 **React (Next.js) / TypeScript** 与 **Tailwind CSS**，主攻微交互动画。在 AI 生态侧，我能熟练基于 **LangChain / LangGraph** 建立高交互 RAG 工作流，利用向量数据库处理嵌入召回，并通过 **Function Calling 机制** 实现 AI 与前端 DOM 的底层双向控制。",
-      "你做过哪些结合 LLM 的前沿项目？":
-        "我主要独立研发了三大生态系统：\n1. **Context-Shield**：基于 Function Calling 的 Token 裁剪与代码自动化审查器。\n2. **Aura Generation**：多模态文本驱动的前沿视觉穿搭生成交互界面。\n3. **Light-Agent Flow**：极简版可视化多智能体编排与工作流拓扑画布。详情可在下方作品集体验沙盒。",
-      "谈谈你对 AI 时代前端交互（Streaming UX）的看法":
-        "传统的流式打字机效果极其机械。下一代 AI 产品前端应主打**渐显呼吸感流式渲染 (Streaming UX)**。在文本块吐出时，利用 Framer Motion 为字符注入极其细腻的模糊淡入与呼吸光标，并结合骨架屏到内容的高级重组。这能大幅降低用户的感知等待焦虑。",
-    },
-    en: {
-      "Introduce your tech stack":
-        "My core frontend stack is **React (Next.js) / TypeScript** and **Tailwind CSS**, focusing on micro-interactions. On the AI side, I build highly interactive RAG workflows using **LangChain / LangGraph**, handle embeddings with VectorDBs, and use **Function Calling** for bidirectional DOM control.",
-      "What cutting-edge LLM projects have you built?":
-        "I have independently developed three main ecosystems:\n1. **Context-Shield**: A token pruner and automated code reviewer based on Function Calling.\n2. **Aura Generation**: A multimodal text-driven visual outfit generation interface.\n3. **Light-Agent Flow**: A minimalist visual multi-agent orchestration canvas. See the sandbox below for details.",
-      "What are your thoughts on Streaming UX in the AI era?":
-        "Traditional typewriter effects are mechanical. Next-gen AI frontends should feature **breathing streaming rendering (Streaming UX)**. By injecting delicate blur fade-ins and breathing cursors into characters via Framer Motion, combined with skeleton-to-content restructuring, we can significantly reduce user waiting anxiety.",
-    },
-  },
-  naval: {
-    zh: {
-      "普通人如何获得财富？":
-        "财富不是靠出卖时间赚来的，而是靠拥有资产赚来的。你需要寻找**杠杆**：资本、劳动力，或者是复制起来边际成本为零的产品（如代码和媒体）。将你自己产品化，利用代码这种最高级的杠杆，在睡觉时也能为你工作。",
-      "什么是特殊知识？":
-        "**特殊知识（Specific Knowledge）**是那些无法通过系统培训获得的知识。如果社会可以培训你，它就可以培训别人来取代你。特殊知识往往在童年或青年时期通过你的独特好奇心和特质获得，它感觉像是在玩耍，但对别人来说像是在工作。",
-      "你如何定义幸福？":
-        "幸福就是当你感到**不再需要缺失什么的时候**，那种内心的平静状态。欲望是你在得到想要的东西之前感到不快乐的一种契约。因此，保持低欲望，学会活在当下，才是幸福的真谛。",
-    },
-    en: {
-      "How can ordinary people get rich?":
-        "You're not going to get rich renting out your time. You must own **equity** - a piece of a business - to gain your financial freedom. Seek leverage: capital, labor, or products with no marginal cost of replication like code and media.",
-      "What is specific knowledge?":
-        "**Specific knowledge** is knowledge that you cannot be trained for. If society can train you, it can train someone else and replace you. It's often highly technical or creative, found by pursuing your genuine curiosity.",
-      "How do you define happiness?":
-        "Happiness is the state when **nothing is missing**. When you are no longer wishing for something to be different. Desire is a contract you make with yourself to be unhappy until you get what you want. Lower your desires and find peace in the present.",
-    },
-  },
-};
-
 const INITIAL_MESSAGES = {
   sophie: {
     zh: "Hi，我是朱安琪（Sophie）的 AI 交互分身。你可以直接点击下方的预设快捷问题，或者直接在输入框向我提问关于她的一切！",
@@ -129,9 +90,11 @@ export const HeroSection: React.FC = () => {
     // 如果已经在流式输出，不允许发送
     const lastMsg = messages[messages.length - 1];
     if (lastMsg?.isStreaming) return;
-    console.log("query", query);
-
-    setMessages((prev) => [...prev, { sender: "user", text: query }]);
+    setMessages((prev) => [
+      ...prev,
+      { sender: "user", text: query },
+      { sender: "ai", text: "", isStreaming: true },
+    ]);
 
     try {
       const res = await fetch("http://localhost:8000/api/chat", {
@@ -141,24 +104,82 @@ export const HeroSection: React.FC = () => {
         },
         body: JSON.stringify({ message: query, persona: persona }),
       });
-      if (!res.ok) {
-        throw new Error("Failed to fetch");
+      if (!res.ok) throw new Error("Failed to fetch");
+      if (!res.body) throw new Error("No response body");
+
+      // 1.获取流读取器 & 文本解析器TextDecoder
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("UTF-8");
+
+      // 2. 准备一个变量，用于积累回复
+      let streamResponse = "";
+
+      // 3. 循环取读（reader.read()）流数据
+      while (true) {
+        const { done, value } = await reader.read();
+        // 用setMessage把流数据塞在页面并且 isStreaming设置为false
+        if (done) {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastMsg = updated[updated.length - 1];
+            if (lastMsg?.sender === "ai") {
+              return [
+                ...updated.slice(0, -1),
+                { ...lastMsg, isStreaming: false },
+              ];
+            }
+            return updated;
+          });
+          break;
+        }
+
+        // 4. 使用 decoder 把数据流转化为文字
+        const chunkText = decoder.decode(value, { stream: true });
+        streamResponse += chunkText;
+
+        // 5. 用 setMessages 把实时的返回显示在页面
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastMsg = updated[updated.length - 1];
+          if (lastMsg?.sender === "ai") {
+            return [
+              ...updated.slice(0, -1),
+              { ...lastMsg, text: streamResponse },
+            ];
+          }
+          return updated;
+        });
       }
-
-      const data = await res.json();
-      console.log("data", data);
-      setMessages((prev) => [...prev, { sender: "ai", text: data.reply }]);
     } catch (error) {
-      console.log(error);
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "ai",
-          text: "Sorry, I encountered an error. Please try again later.",
-          isStreaming: false,
-        },
-      ]);
+      console.error(error);
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastMsg = updated[updated.length - 1];
+        if (lastMsg?.sender === "ai") {
+          return [
+            ...updated.slice(0, -1),
+            {
+              ...lastMsg,
+              text:
+                lang === "zh"
+                  ? "抱歉，连接后端时出错了。请确认 FastAPI 是否在运行。"
+                  : "Sorry, failed to connect to the backend. Please ensure FastAPI is running.",
+              isStreaming: false,
+            },
+          ];
+        }
+        return [
+          ...prev,
+          {
+            sender: "ai",
+            text:
+              lang === "zh"
+                ? "抱歉，连接后端时出错了。请确认 FastAPI 是否在运行。"
+                : "Sorry, failed to connect to the backend. Please ensure FastAPI is running.",
+            isStreaming: false,
+          },
+        ];
+      });
     }
 
     setInputValue("");
