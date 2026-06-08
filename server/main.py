@@ -6,6 +6,9 @@ import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from schemas import ChatRequest, ChatResponse
+from exceptions import raise_for_openai_error
+
+
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 app=FastAPI()
@@ -45,19 +48,26 @@ async def chat(request: ChatRequest):
         {"role":"system","content":system_prompt},
         {"role":"user","content":user_prompt}
     ]
-    def generate():
+
+    try:
         stream = client.chat.completions.create(
             model=os.getenv("QWEN_MODEL"),
             messages=messages,
             # 当 stream=True 时，返回的不是一个完整的响应对象，
             # 而是一个生成器（generator），逐步产出数据块。
-            stream=True
+            stream=True,
         )
+    except Exception as e:
+        raise_for_openai_error(e)
 
-        for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                # yield让函数可以多次返回和交互
-                yield chunk.choices[0].delta.content
+    def generate():
+        try:
+            for chunk in stream:
+                if chunk.choices[0].delta.content is not None:
+                    # yield让函数可以多次返回和交互
+                    yield chunk.choices[0].delta.content
+        except Exception as e:
+            raise_for_openai_error(e)
 
 
     return StreamingResponse(generate(), media_type="text/event-stream")

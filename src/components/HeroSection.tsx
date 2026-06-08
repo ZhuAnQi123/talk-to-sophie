@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, Sparkles, Command } from "lucide-react";
 import { fluidTransition } from "../constants";
 import { useLanguage } from "../context/LanguageContext";
+import { streamChatAPI } from "../services/chatService";
 
 type Persona = "sophie" | "naval";
 
@@ -83,11 +84,12 @@ export const HeroSection: React.FC = () => {
     el.scrollTop = el.scrollHeight;
   }, [messages]);
 
-  const handleSend = async (textToSend: string) => {
+  const handleSend = (textToSend: string) => {
+    setInputValue("");
+
     const query = textToSend.trim();
     if (!query) return;
 
-    // 如果已经在流式输出，不允许发送
     const lastMsg = messages[messages.length - 1];
     if (lastMsg?.isStreaming) return;
     setMessages((prev) => [
@@ -96,93 +98,60 @@ export const HeroSection: React.FC = () => {
       { sender: "ai", text: "", isStreaming: true },
     ]);
 
-    try {
-      const res = await fetch("http://localhost:8000/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: query, persona: persona }),
-      });
-      if (!res.ok) throw new Error("Failed to fetch");
-      if (!res.body) throw new Error("No response body");
+    let streamResponse = "";
+    const errorText =
+      lang === "zh"
+        ? "抱歉，连接后端时出错了。请确认 FastAPI 是否在运行。"
+        : "Sorry, failed to connect to the backend. Please ensure FastAPI is running.";
 
-      // 1.获取流读取器 & 文本解析器TextDecoder
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder("UTF-8");
-
-      // 2. 准备一个变量，用于积累回复
-      let streamResponse = "";
-
-      // 3. 循环取读（reader.read()）流数据
-      while (true) {
-        const { done, value } = await reader.read();
-        // 用setMessage把流数据塞在页面并且 isStreaming设置为false
-        if (done) {
-          setMessages((prev) => {
-            const updated = [...prev];
-            const lastMsg = updated[updated.length - 1];
-            if (lastMsg?.sender === "ai") {
-              return [
-                ...updated.slice(0, -1),
-                { ...lastMsg, isStreaming: false },
-              ];
-            }
-            return updated;
-          });
-          break;
-        }
-
-        // 4. 使用 decoder 把数据流转化为文字
-        const chunkText = decoder.decode(value, { stream: true });
+    streamChatAPI(
+      query,
+      persona,
+      (chunkText) => {
         streamResponse += chunkText;
-
-        // 5. 用 setMessages 把实时的返回显示在页面
         setMessages((prev) => {
           const updated = [...prev];
-          const lastMsg = updated[updated.length - 1];
-          if (lastMsg?.sender === "ai") {
+          const last = updated[updated.length - 1];
+          if (last?.sender === "ai") {
             return [
               ...updated.slice(0, -1),
-              { ...lastMsg, text: streamResponse },
+              { ...last, text: streamResponse },
             ];
           }
           return updated;
         });
-      }
-    } catch (error) {
-      console.error(error);
-      setMessages((prev) => {
-        const updated = [...prev];
-        const lastMsg = updated[updated.length - 1];
-        if (lastMsg?.sender === "ai") {
+      },
+      () => {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last?.sender === "ai") {
+            return [
+              ...updated.slice(0, -1),
+              { ...last, isStreaming: false },
+            ];
+          }
+          return updated;
+        });
+      },
+      (error) => {
+        console.error(error);
+        setMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last?.sender === "ai") {
+            return [
+              ...updated.slice(0, -1),
+              { ...last, text: errorText, isStreaming: false },
+            ];
+          }
           return [
-            ...updated.slice(0, -1),
-            {
-              ...lastMsg,
-              text:
-                lang === "zh"
-                  ? "抱歉，连接后端时出错了。请确认 FastAPI 是否在运行。"
-                  : "Sorry, failed to connect to the backend. Please ensure FastAPI is running.",
-              isStreaming: false,
-            },
+            ...prev,
+            { sender: "ai", text: errorText, isStreaming: false },
           ];
-        }
-        return [
-          ...prev,
-          {
-            sender: "ai",
-            text:
-              lang === "zh"
-                ? "抱歉，连接后端时出错了。请确认 FastAPI 是否在运行。"
-                : "Sorry, failed to connect to the backend. Please ensure FastAPI is running.",
-            isStreaming: false,
-          },
-        ];
-      });
-    }
-
-    setInputValue("");
+        });
+      },
+    );
   };
 
   // 主题配色计算
