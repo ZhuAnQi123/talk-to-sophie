@@ -6,8 +6,7 @@
 
 - **中英双语无缝切换**：采用 React Context 状态管理，支持全局语言热切换。
 - **AI 交互分身 (Hero Section)**：模拟真实 LLM 的渐显呼吸感流式渲染（Streaming UX），带有打字机淡入与光标闪烁效果。
-- **Selected LLM Works (核心作品集)**：
-  展示了前端与 LLM 深度结合的复杂场景，而非普通的 CRUD 项目。
+- **Selected LLM Works (核心作品集)**：展示了前端与 LLM 深度结合的复杂场景，而非普通的 CRUD 项目。
   - **Context-Shield**: 结合 AST 解析与 Function Calling 的代码审查工具。
   - **Aura Generation**: 结合多模态大模型（文生图）的瀑布流与骨架屏前端交互。
   - **Light-Agent Flow**: 基于 React Flow 的可视化智能体编排画布。
@@ -43,8 +42,8 @@ cd server
 python3 -m venv .venv
 source .venv/bin/activate
 
-# 2. 安装依赖（Day 1 最小集）
-pip install fastapi uvicorn pydantic python-dotenv openai
+# 2. 安装依赖
+pip install -r requirements.txt
 
 # 3. 配置环境变量（在项目根目录）
 # 复制 .env.example 为 .env，填入 Qwen API Key
