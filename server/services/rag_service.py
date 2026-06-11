@@ -1,6 +1,8 @@
 import chromadb
 from services.embedding_service import embed_texts
 
+# 在向量库中搜索与query最相似的几条文本片段
+
 def retrieve(query:str,persona:str,top_k:int=3)->list[dict]:
     '''
     返回格式：

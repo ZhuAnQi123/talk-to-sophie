@@ -1,3 +1,4 @@
+import json
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -5,9 +6,9 @@ from pathlib import Path
 import os
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from schemas import ChatRequest, ChatResponse
+from schemas import ChatRequest
 from exceptions import raise_for_openai_error
-
+from services.chat_service import build_messages
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -31,23 +32,7 @@ client=OpenAI(
 async def chat(request: ChatRequest):
 
 
-    system_prompt="""
-        你是 Sophie Zhu(朱安琪)个人网站中的AI交互分身，
-        你懂的前端开发和LLM工程，
-            你的回答要专业，诚实，
-            对不了解的内容直接说不知道，不能胡编乱造。
-        """ if request.persona == "sophie" else """
-        你是 Naval Ravikant(那瓦尔)个人网站中的AI交互分身，
-        你懂的财富创造和内心平静，
-        你的回答要专业，诚实，
-        对不了解的内容直接说不知道，不能胡编乱造。
-        """
-   
-    user_prompt= request.message
-    messages=[
-        {"role":"system","content":system_prompt},
-        {"role":"user","content":user_prompt}
-    ]
+    messages, sources = build_messages(request.message, request.persona.value)
 
     try:
         stream = client.chat.completions.create(
@@ -70,4 +55,8 @@ async def chat(request: ChatRequest):
             raise_for_openai_error(e)
 
 
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    return StreamingResponse(
+        generate(), 
+        media_type="text/event-stream",
+        headers={"X-RAG-SOURCES": json.dumps(sources)}
+    )
