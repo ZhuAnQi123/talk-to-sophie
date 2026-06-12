@@ -1,47 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, Sparkles, Command } from "lucide-react";
+import { ArrowUp, Sparkles, Command, Database } from "lucide-react";
 import { fluidTransition } from "../constants";
 import { useLanguage } from "../context/LanguageContext";
 import { streamChatAPI } from "../services/chatService";
 
 type Persona = "sophie" | "naval";
 
-const PRESET_QUESTIONS = {
-  sophie: {
-    zh: [
-      { text: "💡 技术栈", q: "介绍一下你的技术栈" },
-      { text: "🛠️ 独立项目", q: "你做过哪些结合 LLM 的前沿项目？" },
-      {
-        text: "🧠 技术见解",
-        q: "谈谈你对 AI 时代前端交互（Streaming UX）的看法",
-      },
-    ],
-    en: [
-      { text: "💡 Tech Stack", q: "Introduce your tech stack" },
-      {
-        text: "🛠️ Projects",
-        q: "What cutting-edge LLM projects have you built?",
-      },
-      {
-        text: "🧠 Insights",
-        q: "What are your thoughts on Streaming UX in the AI era?",
-      },
-    ],
-  },
-  naval: {
-    zh: [
-      { text: "🧘‍♂️ 财富与杠杆", q: "普通人如何获得财富？" },
-      { text: "🧠 特殊知识", q: "什么是特殊知识？" },
-      { text: "📖 幸福的定义", q: "你如何定义幸福？" },
-    ],
-    en: [
-      { text: "🧘‍♂️ Wealth & Leverage", q: "How can ordinary people get rich?" },
-      { text: "🧠 Specific Knowledge", q: "What is specific knowledge?" },
-      { text: "📖 Happiness", q: "How do you define happiness?" },
-    ],
-  },
-};
+
 
 const INITIAL_MESSAGES = {
   sophie: {
@@ -59,7 +25,12 @@ export const HeroSection: React.FC = () => {
   const [persona, setPersona] = useState<Persona>("sophie");
 
   const [messages, setMessages] = useState<
-    Array<{ sender: "user" | "ai"; text: string; isStreaming?: boolean }>
+    Array<{
+      sender: "user" | "ai";
+      text: string;
+      isStreaming?: boolean;
+      source?: Array<{ source: string; title: string }>;
+    }>
   >([{ sender: "ai", text: INITIAL_MESSAGES[persona][lang] }]);
   const [inputValue, setInputValue] = useState("");
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -68,6 +39,18 @@ export const HeroSection: React.FC = () => {
   useEffect(() => {
     setMessages([{ sender: "ai", text: INITIAL_MESSAGES[persona][lang] }]);
   }, [lang, persona]);
+
+  // 监听 Cmd+K (Mac) 或 Ctrl+K (Windows) 快捷键切换 Persona
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPersona((prev) => (prev === "sophie" ? "naval" : "sophie"));
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (messages.length <= 1) return;
@@ -121,14 +104,32 @@ export const HeroSection: React.FC = () => {
           return updated;
         });
       },
-      () => {
+      (sourceHeader?: string) => {
+        let parsedSources = undefined;
+        if (sourceHeader) {
+          try {
+            const rawSources = JSON.parse(sourceHeader);
+            if (Array.isArray(rawSources)) {
+              // 根据 source 去重，避免重复展示相同的文件名
+              const uniqueSources = new Set();
+              parsedSources = rawSources.filter((item) => {
+                if (!item.source || uniqueSources.has(item.source)) return false;
+                uniqueSources.add(item.source);
+                return true;
+              });
+            }
+          } catch (e) {
+            console.error("Failed to parse sources:", e);
+          }
+        }
+
         setMessages((prev) => {
           const updated = [...prev];
           const last = updated[updated.length - 1];
           if (last?.sender === "ai") {
             return [
               ...updated.slice(0, -1),
-              { ...last, isStreaming: false },
+              { ...last, isStreaming: false, source: parsedSources },
             ];
           }
           return updated;
@@ -223,17 +224,7 @@ export const HeroSection: React.FC = () => {
             : "Hello, I am a frontend application expert dedicated to bridging the last mile between AI and HCI. On the right is my Virtual Board of Directors, where you can seamlessly switch personas and experience multi-vector-database routing."}
         </p>
 
-        <div className="flex flex-wrap gap-2 pt-4">
-          {PRESET_QUESTIONS[persona][lang].map((item, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSend(item.q)}
-              className="px-4 py-2 text-xs font-bold bg-white text-neutral-800 border border-neutral-200 rounded-full hover:border-neutral-900 hover:bg-neutral-50 transition-all cursor-pointer shadow-sm"
-            >
-              {item.text}
-            </button>
-          ))}
-        </div>
+       
       </div>
 
       <div className="w-full lg:w-1/2 flex justify-center relative">
@@ -242,23 +233,21 @@ export const HeroSection: React.FC = () => {
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="absolute -top-14 left-1/2 -translate-x-1/2 z-10 flex items-center p-1 rounded-full backdrop-blur-xl border border-neutral-200/50 shadow-lg"
-          style={{
-            backgroundColor:
-              persona === "sophie"
-                ? "rgba(255,255,255,0.7)"
-                : "rgba(245,242,250,0.9)",
-          }}
+          className={`absolute -top-14 left-1/2 -translate-x-1/2 z-10 flex items-center p-1 rounded-full backdrop-blur-xl border transition-all duration-700 shadow-lg ${
+            persona === "sophie"
+              ? "bg-white/70 border-neutral-200/50 shadow-neutral-200/50"
+              : "bg-[#f5f2fa]/90 border-violet-200/50 shadow-violet-100/60"
+          }`}
         >
-          <div className="flex items-center px-2 mr-2 border-r border-neutral-300/30">
+          <div className={`flex items-center px-2 mr-2 border-r transition-colors duration-700 ${persona === "sophie" ? "border-neutral-300/30" : "border-amber-300/30"}`}>
             <Command
               size={14}
               className={
-                persona === "sophie" ? "text-neutral-400" : "text-neutral-500"
+                persona === "sophie" ? "text-neutral-400" : "text-amber-600/70"
               }
             />
             <span
-              className={`text-[10px] font-bold ml-1 ${persona === "sophie" ? "text-neutral-400" : "text-neutral-500"}`}
+              className={`text-[10px] font-bold ml-1 transition-colors duration-700 ${persona === "sophie" ? "text-neutral-400" : "text-amber-600/70"}`}
             >
               ⌘K
             </span>
@@ -340,21 +329,47 @@ export const HeroSection: React.FC = () => {
                       AI
                     </div>
                   )}
-                  <div
-                    className={`px-4 py-3 text-sm max-w-[85%] shadow-sm leading-relaxed border transition-colors duration-700 ${
-                      msg.sender === "user"
-                        ? `${theme.userMsgBg} border-transparent rounded-2xl rounded-tr-none`
-                        : `${theme.aiMsgBg} rounded-2xl rounded-tl-none`
-                    } ${msg.isStreaming ? `after:content-["|"] after:animate-pulse after:ml-0.5 after:font-bold ${persona === "sophie" ? "after:text-neutral-900" : "after:text-amber-600"}` : ""}`}
-                    dangerouslySetInnerHTML={{
-                      __html: msg.text
-                        .replace(
-                          /\*\*(.*?)\*\*/g,
-                          `<strong class="font-extrabold ${persona === "sophie" ? "text-neutral-950" : "text-amber-800"}">$1</strong>`,
-                        )
-                        .replace(/\n/g, "<br/>"),
-                    }}
-                  />
+                  <div className={`flex flex-col gap-1.5 ${msg.sender === "user" ? "items-end" : "items-start"} max-w-[85%]`}>
+                    <div
+                      className={`px-4 py-3 text-sm shadow-sm leading-relaxed border transition-colors duration-700 w-fit ${
+                        msg.sender === "user"
+                          ? `${theme.userMsgBg} border-transparent rounded-2xl rounded-tr-none`
+                          : `${theme.aiMsgBg} rounded-2xl rounded-tl-none`
+                      } ${msg.isStreaming ? `after:content-["|"] after:animate-pulse after:ml-0.5 after:font-bold ${persona === "sophie" ? "after:text-neutral-900" : "after:text-amber-600"}` : ""}`}
+                      dangerouslySetInnerHTML={{
+                        __html: msg.text
+                          .replace(
+                            /\*\*(.*?)\*\*/g,
+                            `<strong class="font-extrabold ${persona === "sophie" ? "text-neutral-950" : "text-amber-800"}">$1</strong>`,
+                          )
+                          .replace(/\n/g, "<br/>"),
+                      }}
+                    />
+                  {/* 多重来源 Chips (Source Badges) */}
+                  {msg.sender === "ai" && !msg.isStreaming && i > 0 && Array.isArray(msg.source) && msg.source.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1 w-[85%]">
+                      {msg.source.map((src, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 + idx * 0.05 }} // 错落有致的出现动画
+                          className={`flex items-center gap-1 w-max px-2 py-1 rounded-md text-[10px] border shadow-sm transition-colors duration-700 ${
+                            persona === "sophie"
+                              ? "bg-white/60 border-neutral-200/60 text-neutral-500"
+                              : "bg-[#f5f2fa]/60 border-violet-200/50 text-amber-700/80"
+                          }`}
+                          title={src.source} // 鼠标悬浮时展示完整文件名
+                        >
+                          <Database size={10} className="opacity-70 shrink-0" />
+                          <span className="font-semibold truncate max-w-[160px]">
+                           知识库： {src.source}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                  </div>
                 </motion.div>
               ))}
             </AnimatePresence>

@@ -2,7 +2,7 @@ export async function streamChatAPI(
   message: string,
   persona: string,
   onChunk: (text: string) => void,
-  onDone: () => void,
+  onDone: (source?: string) => void,
   onError: (err: Error) => void,
 ) {
   try {
@@ -16,13 +16,15 @@ export async function streamChatAPI(
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     if (!res.body) throw new Error("No response body");
 
+    // 获取 X-RAG-Sources header，如果不存在则返回 undefined
+    const ragSources = res.headers.get("X-RAG-Sources") ?? undefined;
     const reader = res.body.getReader();
     const decoder = new TextDecoder("utf-8");
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
-        onDone();
+        onDone(ragSources);
         break;
       }
       const chunkText = decoder.decode(value, { stream: true });
