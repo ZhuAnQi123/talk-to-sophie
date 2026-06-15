@@ -63,6 +63,16 @@ curl -X POST http://127.0.0.1:8000/api/chat \
 
 > 注意：请使用 `uvicorn`（不是 `unicorn`），且用 `python3 -m venv` 创建虚拟环境，不要直接用系统 `pip3 install`，否则会触发 macOS 的 `externally-managed-environment` 报错。
 
+### 📚 知识库更新 (RAG)
+
+如果你修改、新增或删除了 `server/data/documents/` 目录下的 `.md` 知识库文件，需要重新运行入库脚本来重新切片并更新向量数据库：
+
+```bash
+cd server
+# 确保在虚拟环境已激活的情况下运行
+python -m rag.ingest
+```
+
 ## � 今日复盘 (Bug Retrospective)
 
 ### 2024-XX-XX: RAG Pipeline Ingestion 专项

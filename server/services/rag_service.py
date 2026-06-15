@@ -3,7 +3,7 @@ from services.embedding_service import embed_texts
 
 # 在向量库中搜索与query最相似的几条文本片段
 
-def retrieve(query:str,persona:str,top_k:int=3)->list[dict]:
+def retrieve(query:str,persona:str,top_k:int=3, filters:dict=None)->list[dict]:
     '''
     返回格式：
     [
@@ -28,10 +28,16 @@ def retrieve(query:str,persona:str,top_k:int=3)->list[dict]:
     collection_name = f"{persona}_kb"
     collection = client.get_or_create_collection(name=collection_name)
 
+    # 构建 ChromaDB 的 where 过滤条件
+    where_clause = None
+    if filters:
+        where_clause = filters
+
     #3. 执行向量相似度检索
     results = collection.query(
         query_embeddings=query_embeddings,
-        n_results=top_k
+        n_results=top_k,
+        where=where_clause
     )
 
     #4. 格式化返回结果

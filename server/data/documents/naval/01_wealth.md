@@ -1,5 +1,7 @@
 # 财富创造
 
+> metadata: title=财富创造, description=探讨财富的本质、杠杆效应、专长与判断力，以及如何不靠运气致富的原则, category=财富创造, persona=naval, last_updated=2026-06-15
+
 > 赚钱不是一件想做就能做的事情，而是一门需要学习的技能。
 
 ## 核心框架：如何致富（不靠运气）

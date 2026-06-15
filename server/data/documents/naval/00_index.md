@@ -1,11 +1,6 @@
----
-title: 纳瓦尔智慧知识库索引
-description: 基于《纳瓦尔宝典》及公开访谈提炼的核心思想、原则与金句，用于构建 Naval Agent 的知识库。
-version: 1.0
-last_updated: 2024-05-21
----
-
 # 🧠 纳瓦尔智慧知识库索引
+
+> metadata: title=纳瓦尔智慧知识库索引, description=基于《纳瓦尔宝典》及公开访谈提炼的核心思想、原则与金句，用于构建 Naval Agent 的知识库, last_updated=2026-06-15
 
 本知识库包含以下核心主题，每个主题下均以独立 Markdown 文件形式存储结构化知识点。
 

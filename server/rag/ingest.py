@@ -17,7 +17,13 @@ def ingest_markdown_to_chromadb(persona:str):
 
     client = chromadb.PersistentClient(path="./data/chroma_data")
     collection_name = f"{persona}_kb"
+    
+    # --- 完全重建逻辑 ---
+    # 每次都删除旧的 collection，然后重新创建
+    print(f"💥 准备清空并重建 Collection: {collection_name}...")
+    client.delete_collection(name=collection_name)
     chroma_collection = client.get_or_create_collection(name=collection_name)
+    
     print(f"🚀 开始处理 {persona} 的知识库入库...")
 
     for filename in os.listdir(directory):
