@@ -6,5 +6,6 @@ class Persona(str, Enum):
 class ChatRequest(BaseModel):
     message: str
     persona:Persona
+    session_id: str = "default_session"
 class ChatResponse(BaseModel):
     reply: str
