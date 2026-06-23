@@ -31,7 +31,12 @@ def chunk_markdown_file(file_path: str, persona: str, chunk_size: int = 500, ove
         return []
     
     text = documents[0].text
-    source_name = os.path.basename(file_path)
+    # 为了更好地区分多级目录中的文件，保留更多的路径信息 (也可以根据需要仅保留 basename)
+    # 此处如果只想要文件名，保留 os.path.basename 也可以，但考虑到增加了 projects/ 目录
+    # 我们用相对路径名或至少保留上级目录名。
+    path_parts = file_path.split(os.sep)
+    # 取最后两级目录（比如 projects/FXMarketingAgent.md 或 sophie/resume.md)
+    source_name = os.path.join(*path_parts[-2:]) if len(path_parts) >= 2 else os.path.basename(file_path)
 
     # --- 新增：从 Markdown 正文内容中提取 Metadata ---
     base_metadata = {

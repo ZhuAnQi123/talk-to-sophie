@@ -26,32 +26,36 @@ def ingest_markdown_to_chromadb(persona:str):
     
     print(f"🚀 开始处理 {persona} 的知识库入库...")
 
-    for filename in os.listdir(directory):
-        if filename.endswith(".md"):
-            file_path = os.path.join(directory, filename)
-            # 2. 用 chunker 切片
-            chunks = chunk_markdown_file(file_path, persona)
-            print(f"  📖 读取文件: {filename}, 生成了 {len(chunks)} 个片段")
-            
-            if not chunks:
-                continue
-
-            # 准备批量数据
-            texts = [c['text'] for c in chunks]
-            metadatas = [c['metadata'] for c in chunks]
-            ids = [f"{m['source']}_{m['chunk_index']}" for m in metadatas]
-
-            # 3. 批量向量化 (显著提升速度)
-            embeddings = embed_texts(texts)
-
-            # 4. 写入 ChromaDB (使用 upsert 自动处理更新)
-            chroma_collection.upsert(
-                documents=texts,
-                metadatas=metadatas,
-                embeddings=embeddings,
-                ids=ids
-            )
-            print(f"  ✅ {filename} 向量化并存入 ChromaDB 成功")
+    for root, _, files in os.walk(directory):
+        for filename in files:
+            if filename.endswith(".md"):
+                file_path = os.path.join(root, filename)
+                # 2. 用 chunker 切片
+                chunks = chunk_markdown_file(file_path, persona)
+                print(f"  📖 读取文件: {file_path}, 生成了 {len(chunks)} 个片段")
+                
+                if not chunks:
+                    continue
+    
+                # 准备批量数据
+                texts = [c['text'] for c in chunks]
+                metadatas = [c['metadata'] for c in chunks]
+                # ids = [f"{m['source']}_{m['chunk_index']}" for m in metadatas]
+                # To avoid id collisions across directories with same filename, include relative path in ID
+                rel_path = os.path.relpath(file_path, directory)
+                ids = [f"{rel_path}_{m['chunk_index']}".replace('/', '_') for m in metadatas]
+    
+                # 3. 批量向量化 (显著提升速度)
+                embeddings = embed_texts(texts)
+    
+                # 4. 写入 ChromaDB (使用 upsert 自动处理更新)
+                chroma_collection.upsert(
+                    documents=texts,
+                    metadatas=metadatas,
+                    embeddings=embeddings,
+                    ids=ids
+                )
+                print(f"  ✅ {file_path} 向量化并存入 ChromaDB 成功")
 
 if __name__ == "__main__":
     # 脚本直接运行时的入口
