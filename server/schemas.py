@@ -7,5 +7,6 @@ class ChatRequest(BaseModel):
     message: str
     persona:Persona
     session_id: str = "default_session"
+    web_search: bool = False
 class ChatResponse(BaseModel):
     reply: str

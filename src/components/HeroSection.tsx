@@ -33,6 +33,7 @@ export const HeroSection: React.FC = () => {
     }>
   >([{ sender: "ai", text: INITIAL_MESSAGES[persona][lang] }]);
   const [inputValue, setInputValue] = useState("");
+  const [forceWeb, setForceWeb]= useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // 当语言或 Persona 切换时，重置聊天记录并显示新的欢迎语
@@ -90,6 +91,7 @@ export const HeroSection: React.FC = () => {
     streamChatAPI(
       query,
       persona,
+      forceWeb,
       (chunkText) => {
         streamResponse += chunkText;
         setMessages((prev) => {
@@ -326,7 +328,7 @@ export const HeroSection: React.FC = () => {
                     <div
                       className={`w-7 h-7 rounded-full text-white flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors duration-700 ${theme.aiAvatarBg}`}
                     >
-                      AI
+                      {persona.charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div className={`flex flex-col gap-1.5 ${msg.sender === "user" ? "items-end" : "items-start"} max-w-[85%]`}>
@@ -363,7 +365,7 @@ export const HeroSection: React.FC = () => {
                         >
                           <Database size={10} className="opacity-70 shrink-0" />
                           <span className="font-semibold truncate max-w-[160px]">
-                           知识库： {src.source}
+                           {src.source.startsWith("http") ? "网络：" : "知识库："} {src.source}
                           </span>
                         </motion.div>
                       ))}
@@ -374,7 +376,23 @@ export const HeroSection: React.FC = () => {
               ))}
             </AnimatePresence>
           </div>
-
+          {persona === "naval" && (
+            <div className="flex items-center justify-end px-2 mb-2 gap-2">
+              <span className="text-xs text-neutral-500 font-medium">🌐 联网搜索</span>
+              <button
+                onClick={() => setForceWeb(!forceWeb)}
+                className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${
+                  forceWeb ? "bg-amber-500" : "bg-neutral-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                    forceWeb ? "translate-x-4" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          )}
           <div
             className={`relative mt-4 flex items-center rounded-2xl border p-1 shadow-sm transition-all duration-700 w-full max-w-lg ${theme.inputBg}`}
           >

@@ -30,7 +30,8 @@ async def chat(request: ChatRequest):
         generate, sources = build_and_stream_chat(
             request.message,
             request.persona.value,
-            request.session_id # 加入 session ID 实现路由记忆隔离
+            request.session_id, 
+            request.web_search
         )
 
         return StreamingResponse(

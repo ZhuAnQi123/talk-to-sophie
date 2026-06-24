@@ -1,16 +1,18 @@
 export async function streamChatAPI(
   message: string,
   persona: string,
+  forceWeb: boolean,
   onChunk: (text: string) => void,
   onDone: (source?: string) => void,
   onError: (err: Error) => void,
+  
 ) {
   try {
     // 相对路径，走 Vite Proxy
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, persona }),
+      body: JSON.stringify({ message, persona, force_web: forceWeb}),
     });
 
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
