@@ -102,6 +102,7 @@ def build_and_stream_chat(user_message: str, persona: str, session_id: str = "de
 
     # 5. 定义 Stream 生成器
     def generate():
+        is_thinking = False
         # 调用 langchain 封装链的 stream 方法
         for chunk in chain_with_history.stream(
             {
@@ -110,7 +111,23 @@ def build_and_stream_chat(user_message: str, persona: str, session_id: str = "de
             },
             config={"configurable": {"session_id": session_id}}
         ):
+            # 兼容推理模型（如 DeepSeek-R1）的 thinking 过程
+            reasoning = chunk.additional_kwargs.get("reasoning_content", "")
+            if reasoning:
+                if not is_thinking:
+                    yield "<think>\n"
+                    is_thinking = True
+                yield reasoning
+
             if chunk.content:
+                # 当模型开始输出正文时，闭合 thinking 标签
+                if is_thinking:
+                    yield "\n</think>\n\n"
+                    is_thinking = False
                 yield chunk.content
+                
+        # 兜底闭合标签
+        if is_thinking:
+            yield "\n</think>\n\n"
 
     return generate, sources
