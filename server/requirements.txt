@@ -15,3 +15,5 @@ openai>=1.0.0
 llama_index>=0.5.0
 chromadb>=0.4.0
 langchain-openai
+jinja2
+PyYAML

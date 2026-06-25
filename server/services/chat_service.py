@@ -1,12 +1,12 @@
 import os
 import re
-from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from services.web_search_service import perform_web_search
 from services.rag_service import retrieve
+from services.prompt_registry import build_system_message, build_context_prompt
 
 # 全局的会话存储字典，用于在内存中保存多个 session 的对话历史
 session_store = {}
@@ -50,22 +50,14 @@ chain_with_history = RunnableWithMessageHistory(
 
 
 def rewrite_search_query(user_message: str, persona: str, session_id: str) -> str:
-    persona_name = "Sophie Zhu(朱安琪)" if persona == "sophie" else "Naval Ravikant(那瓦尔)"
-    current_year = datetime.now().year
     
     history = get_session_history(session_id)
-    history_text = ""
-    if history.messages:
-        recent_msgs = history.messages[-4:]
-        history_text = "\n".join([f"{msg.type}: {msg.content}" for msg in recent_msgs])
-        
-    prompt_text = f"当前系统年份：{current_year}年。请将用户的最新提问重写为适合用于搜索引擎和知识库检索的独立查询语句。要求：\n1. 如果提问中包含'你'、'你的'等代词，必须明确替换为'{persona_name}'。\n2. 如果包含“今年”、“去年”、“目前”等时间代词，必须替换为具体的年份（例如将“今年”替换为“{current_year}年”）。\n3. 结合对话历史补全缺失的上下文信息。\n4. 直接输出重写后的查询语句，不要包含任何标点符号、解释或回答。\n\n对话历史：\n{history_text}\n\n用户最新提问：{user_message}"
-
+    prompt_text = build_context_prompt(persona, user_message, history)
     try:
         response = llm.invoke(prompt_text)
         return response.content.strip()
     except Exception as e:
-        return f"{persona_name} {user_message}"
+        return f"{persona} {user_message}"
 
 def build_and_stream_chat(user_message: str, persona: str, session_id: str = "default_session", web_search: bool = False):
 
@@ -100,9 +92,7 @@ def build_and_stream_chat(user_message: str, persona: str, session_id: str = "de
     # 2. 把检索出的结果拼接成 context
     context = "\n\n".join([f"知识库来源：{item['metadata']['source']}，标题：{item['metadata']['title']}，内容：{item['text']}" for item in retrieved_results])
 
-    # 3. 动态组装 system prompt
-    system_prompt = "你是 Sophie Zhu(朱安琪)个人网站中的AI交互分身，\n" if persona == "sophie" else "你是 Naval Ravikant(那瓦尔)个人网站中的AI交互分身，\n"
-    system_prompt += f"请根据以下提供的知识库内容回答用户的问题，如果知识库内容无法回答用户的问题，请基于你的设定正常交流，不要编造资料中的内容。\n以下为知识库内容：\n{context}"
+    system_prompt=build_system_message(persona, rag_context=context)
 
     # 4. 组装 sources 供前端引用展示
     sources = [
