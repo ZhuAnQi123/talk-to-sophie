@@ -14,7 +14,7 @@ export function ProjectSandboxPanel({ lang, activeProject }: ProjectSandboxPanel
     <motion.div
       layout
       transition={fluidTransition}
-      className="w-full lg:w-7/12 bg-neutral-900/60 border border-neutral-800/80 rounded-3xl p-8 flex flex-col justify-center min-h-[460px] relative overflow-hidden"
+      className="w-full h-full bg-neutral-900/60 border border-neutral-800/80 rounded-3xl p-8 flex flex-col justify-center min-h-[460px] relative overflow-hidden"
     >
       <AnimatePresence mode="wait">
         {!activeProject ? (

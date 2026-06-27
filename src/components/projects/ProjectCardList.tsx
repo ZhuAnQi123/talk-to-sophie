@@ -16,13 +16,40 @@ export function ProjectCardList({
   activeId,
   setActiveId,
 }: ProjectCardListProps) {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.2,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: 30 },
+    show: { 
+      opacity: 1, 
+      x: 0,
+      transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
+    },
+  };
+
   return (
-    <div className="w-full lg:w-5/12 flex flex-col gap-4">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, margin: "-100px" }}
+      className="w-full flex flex-col gap-4"
+    >
       {projects.map((project) => {
         const isSelected = activeId === project.id;
         return (
           <motion.div
             layout
+            variants={itemVariants}
             key={project.id}
             onClick={() => setActiveId(isSelected ? null : project.id)}
             transition={fluidTransition}
@@ -52,6 +79,6 @@ export function ProjectCardList({
           </motion.div>
         );
       })}
-    </div>
+    </motion.div>
   );
 }

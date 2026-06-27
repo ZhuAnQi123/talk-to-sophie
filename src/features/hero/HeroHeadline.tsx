@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { gsap } from "gsap";
-import { fluidTransition } from "../../constants";
 import { HERO_TITLE_PARTS, HERO_SUBTITLE } from "./constants";
 import { Lang } from "./types";
 
@@ -73,22 +72,35 @@ export function HeroHeadline({ lang }: { lang: Lang }) {
         // {HERO_SUBTITLE[lang]}
       </motion.span>
       <motion.h2
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={fluidTransition}
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: {
+            transition: { staggerChildren: 0.2, delayChildren: 0.1 }
+          }
+        }}
         className="text-5xl md:text-7xl font-extrabold tracking-tighter leading-none p-4 -m-4"
       >
-        {renderLiquidText(HERO_TITLE_PARTS[0], 0, handleMouseEnter)}
-        <br />
-        <span className="text-neutral-400">
-          {renderLiquidText(HERO_TITLE_PARTS[1], HERO_TITLE_PARTS[0].length, handleMouseEnter)}
-        </span>{" "}
-        <br />
-        {renderLiquidText(
-          HERO_TITLE_PARTS[2],
-          HERO_TITLE_PARTS[0].length + HERO_TITLE_PARTS[1].length,
-          handleMouseEnter,
-        )}
+        <div className="overflow-hidden">
+          <motion.div variants={{ hidden: { y: "100%" }, visible: { y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } } }}>
+            {renderLiquidText(HERO_TITLE_PARTS[0], 0, handleMouseEnter)}
+          </motion.div>
+        </div>
+        <div className="overflow-hidden mt-2">
+          <motion.div variants={{ hidden: { y: "100%" }, visible: { y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } } }} className="text-neutral-400">
+            {renderLiquidText(HERO_TITLE_PARTS[1], HERO_TITLE_PARTS[0].length, handleMouseEnter)}
+          </motion.div>
+        </div>
+        <div className="overflow-hidden mt-2">
+          <motion.div variants={{ hidden: { y: "100%" }, visible: { y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } } }}>
+            {renderLiquidText(
+              HERO_TITLE_PARTS[2],
+              HERO_TITLE_PARTS[0].length + HERO_TITLE_PARTS[1].length,
+              handleMouseEnter,
+            )}
+          </motion.div>
+        </div>
       </motion.h2>
 
       <svg className="hidden" style={{ width: 0, height: 0, position: "absolute" }}>
