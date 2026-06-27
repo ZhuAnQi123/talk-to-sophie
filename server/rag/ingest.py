@@ -21,7 +21,10 @@ def ingest_markdown_to_chromadb(persona:str):
     # --- 完全重建逻辑 ---
     # 每次都删除旧的 collection，然后重新创建
     print(f"💥 准备清空并重建 Collection: {collection_name}...")
-    client.delete_collection(name=collection_name)
+    try:
+        client.delete_collection(name=collection_name)
+    except ValueError:
+        print(f"{collection_name} 为新加collection")
     chroma_collection = client.get_or_create_collection(name=collection_name)
     
     print(f"🚀 开始处理 {persona} 的知识库入库...")

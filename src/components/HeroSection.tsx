@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp, Sparkles, Command, Database } from "lucide-react";
+import { gsap } from "gsap";
 import { fluidTransition } from "../constants";
 import { useLanguage } from "../context/LanguageContext";
 import { streamChatAPI } from "../services/chatService";
@@ -19,6 +20,11 @@ const INITIAL_MESSAGES = {
     en: "Hello, I'm the virtual mentor avatar of Naval Ravikant. My knowledge base is built upon The Almanack of Naval and years of podcasts. What would you like to discuss regarding wealth creation and inner peace?",
   },
 };
+
+const TEXT_PART_1 = "Bridging ";
+const TEXT_PART_2 = "Human Intent";
+const TEXT_PART_3 = "& Machine Intel.";
+const TOTAL_CHARS = TEXT_PART_1.length + TEXT_PART_2.length + TEXT_PART_3.length;
 
 export const HeroSection: React.FC = () => {
   const { lang } = useLanguage();
@@ -40,6 +46,58 @@ export const HeroSection: React.FC = () => {
   useEffect(() => {
     setMessages([{ sender: "ai", text: INITIAL_MESSAGES[persona][lang] }]);
   }, [lang, persona]);
+
+  // 液态水波纹动效 (全局湍流流动，局部触发)
+  useEffect(() => {
+    const tl = gsap.timeline({ repeat: -1 });
+    tl.fromTo(
+      ".liquid-noise",
+      { attr: { baseFrequency: "0.01 0.05" } },
+      { attr: { baseFrequency: "0.04 0.02" }, duration: 2.4, ease: "none" }
+    );
+
+    return () => {
+      tl.kill();
+    };
+  }, []);
+
+  const handleMouseEnter = (index: number) => {
+    const animateScale = (idx: number, maxScale: number) => {
+      const el = document.getElementById(`disp-${idx}`);
+      if (!el) return;
+      gsap.killTweensOf(el);
+      gsap.to(el, {
+        attr: { scale: maxScale },
+        duration: 0.3,
+        ease: "power2.out",
+        onComplete: () => {
+          gsap.to(el, { attr: { scale: 0 }, duration: 0.5, ease: "power2.inOut" });
+        }
+      });
+    };
+
+    animateScale(index, 35);
+    if (index > 0) animateScale(index - 1, 15);
+    if (index < TOTAL_CHARS - 1) animateScale(index + 1, 15);
+    if (index > 1) animateScale(index - 2, 5);
+    if (index < TOTAL_CHARS - 2) animateScale(index + 2, 5);
+  };
+
+  const renderLiquidText = (text: string, startIndex: number) => {
+    return text.split("").map((char, i) => {
+      const idx = startIndex + i;
+      return (
+        <span
+          key={idx}
+          className="inline-block"
+          style={{ filter: `url(#wave-${idx})`, whiteSpace: char === " " ? "pre" : "normal" }}
+          onMouseEnter={() => handleMouseEnter(idx)}
+        >
+          {char}
+        </span>
+      );
+    });
+  };
 
   // 监听 Cmd+K (Mac) 或 Ctrl+K (Windows) 快捷键切换 Persona
   useEffect(() => {
@@ -197,7 +255,7 @@ export const HeroSection: React.FC = () => {
   return (
     <section
       id="hero"
-      className="min-h-screen pt-32 px-6 md:px-12 flex flex-col lg:flex-row items-center justify-between gap-12 max-w-7xl mx-auto"
+      className="min-h-screen pt-27 px-6 md:px-12 flex flex-col lg:flex-row items-center justify-between gap-12 max-w-7xl mx-auto"
     >
       <div className="w-full lg:w-1/2 space-y-6">
         <motion.span
@@ -214,11 +272,11 @@ export const HeroSection: React.FC = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={fluidTransition}
-          className="text-5xl md:text-7xl font-extrabold tracking-tighter leading-none"
+          className="text-5xl md:text-7xl font-extrabold tracking-tighter leading-none p-4 -m-4"
         >
-          Bridging <br />
-          <span className="text-neutral-400">Human Intent</span> <br />& Machine
-          Intel.
+          {renderLiquidText(TEXT_PART_1, 0)}<br />
+          <span className="text-neutral-400">{renderLiquidText(TEXT_PART_2, TEXT_PART_1.length)}</span> <br />
+          {renderLiquidText(TEXT_PART_3, TEXT_PART_1.length + TEXT_PART_2.length)}
         </motion.h2>
         <p className="text-neutral-600 max-w-md text-base leading-relaxed">
           {lang === "zh"
@@ -421,6 +479,18 @@ export const HeroSection: React.FC = () => {
           </div>
         </motion.div>
       </div>
+      
+      {/* 液态水波纹滤镜定义 (为每个字符生成独立滤镜以实现局部扭曲) */}
+      <svg className="hidden" style={{ width: 0, height: 0, position: "absolute" }}>
+        <defs>
+          {Array.from({ length: TOTAL_CHARS }).map((_, i) => (
+            <filter key={i} id={`wave-${i}`} x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence className="liquid-noise" type="fractalNoise" baseFrequency="0.02 0.05" numOctaves="1" result="noise" />
+              <feDisplacementMap id={`disp-${i}`} in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+          ))}
+        </defs>
+      </svg>
     </section>
   );
 };

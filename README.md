@@ -73,15 +73,3 @@ cd server
 python -m rag.ingest
 ```
 
-## � 今日复盘 (Bug Retrospective)
-
-### 2024-XX-XX: RAG Pipeline Ingestion 专项
-
-- **Bug 1: API Batch Limit (10)**  
-  阿里云 `text_embedding_v3` 限制单次请求输入不可超过 10 条。已在 `embedding_service.py` 中封装分批逻辑，支持任意长度列表的自动切分与聚合。
-- **Bug 2: NoneType 响应报错**  
-  API 异常时 `response.output` 会返回 `None`。通过引入 `HTTPStatus` 校验，增强了服务层的健壮性，能够抛出具体的 API 错误码（如 400/401）。
-
-## �💡 关于 "Selected LLM Works"
-
-这块区域是本网站的“核心炫技场”。它向访问者（如面试官或潜在合作伙伴）证明：开发者不仅具备扎实的前端视觉与交互还原能力，还深刻理解大语言模型的底层机制（如 Function Calling、RAG、Agent 工作流、Token 优化等）。通过左侧的“高仿真 AI 能力透视沙盒”和右侧的“卡片流”，将抽象的 AI 概念具象化为极具科技感的 UI 界面。
