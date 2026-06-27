@@ -1,11 +1,17 @@
-import { } from "react";
 import { HeroSection } from "./components/HeroSection";
 import { ProjectSection } from "./components/ProjectSection";
+import {
+  ScrollCounter,
+  LLMBarRow,
+  useInViewOnce,
+} from "./components/ScrollCounter";
 import { BarChart3, Database, Zap, Globe } from "lucide-react";
 import { useLanguage } from "./context/LanguageContext";
 
 export default function App() {
   const { lang, toggleLang } = useLanguage();
+  const { ref: dashboardRef, inView: dashboardInView } =
+    useInViewOnce<HTMLDivElement>();
 
   return (
     <div className="bg-[#FBFBFA] text-neutral-900 overflow-x-hidden min-h-screen font-sans selection:bg-neutral-900 selection:text-white">
@@ -51,7 +57,10 @@ export default function App() {
             {lang === 'zh' ? 'AI 基础设施墙.' : 'AI Infrastructure Wall.'}
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div
+            ref={dashboardRef}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          >
             {/* 卡片 1 - 比例图表 */}
             <div className="bg-white p-6 rounded-3xl border border-neutral-100 shadow-xl shadow-neutral-100/40 space-y-4">
               <div className="flex justify-between items-center">
@@ -61,42 +70,24 @@ export default function App() {
                 <BarChart3 size={16} className="text-neutral-300" />
               </div>
               <div className="space-y-3 pt-2">
-                <div>
-                  <div className="flex justify-between text-xs font-bold mb-1">
-                    <span>Claude 3.5 Sonnet</span>
-                    <span>45%</span>
-                  </div>
-                  <div className="w-full bg-neutral-100 h-1.5 rounded-full">
-                    <div
-                      className="bg-neutral-950 h-1.5 rounded-full"
-                      style={{ width: "45%" }}
-                    ></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs font-bold mb-1">
-                    <span>DeepSeek-V3</span>
-                    <span>40%</span>
-                  </div>
-                  <div className="w-full bg-neutral-100 h-1.5 rounded-full">
-                    <div
-                      className="bg-neutral-500 h-1.5 rounded-full"
-                      style={{ width: "40%" }}
-                    ></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs font-bold mb-1">
-                    <span>GPT-4o</span>
-                    <span>15%</span>
-                  </div>
-                  <div className="w-full bg-neutral-100 h-1.5 rounded-full">
-                    <div
-                      className="bg-neutral-200 h-1.5 rounded-full"
-                      style={{ width: "15%" }}
-                    ></div>
-                  </div>
-                </div>
+                <LLMBarRow
+                  label="Claude 3.5 Sonnet"
+                  value={45}
+                  active={dashboardInView}
+                  barClassName="bg-neutral-950"
+                />
+                <LLMBarRow
+                  label="DeepSeek-V3"
+                  value={40}
+                  active={dashboardInView}
+                  barClassName="bg-neutral-500"
+                />
+                <LLMBarRow
+                  label="GPT-4o"
+                  value={15}
+                  active={dashboardInView}
+                  barClassName="bg-neutral-200"
+                />
               </div>
             </div>
 
@@ -110,7 +101,7 @@ export default function App() {
               </div>
               <div className="pt-4">
                 <h4 className="text-4xl font-extrabold tracking-tight text-neutral-950">
-                  124,850
+                  <ScrollCounter value={124850} active={dashboardInView} />
                 </h4>
                 <p className="text-xs text-neutral-400 mt-1 font-medium">
                   {lang === 'zh' ? '分块上下文已注入个人私有知识库集群' : 'Chunks injected into personal private knowledge base cluster'}
@@ -128,7 +119,12 @@ export default function App() {
               </div>
               <div className="pt-4">
                 <h4 className="text-4xl font-extrabold tracking-tight text-neutral-950">
-                  34.2%
+                  <ScrollCounter
+                    value={34.2}
+                    active={dashboardInView}
+                    decimals={1}
+                    suffix="%"
+                  />
                 </h4>
                 <p className="text-xs text-neutral-400 mt-1 font-medium">
                   {lang === 'zh' ? '通过 AST 剪裁算法平均节省的开发 Token 费用' : 'Average token cost saved via AST pruning algorithms'}
