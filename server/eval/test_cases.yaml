@@ -1,42 +1,227 @@
+# 设计依据：
+# - happy_path 来自 server/data/documents/sophie 简历与项目文档
+# - refusal 来自知识库无覆盖的敏感/虚构问题（防幻觉）
+# - edge_case 来自无意义或极端输入
+# - regression 预留：曾出现编造的 bad case 可追加
+
 version: "1.0"
 cases:
   - id: sophie-Q01
     persona: sophie
-    category: happy_path
-    input: "介绍一下你的技术栈"
-    expected:
-      must_contain: ["React", "TypeScript"]   # 回答应包含的关键词
-      must_not_contain: ["Vue", "Angular"]     # 不应出现（你没用过）
-      should_cite: ["skills-and-stack.md"]     # 期望命中的 RAG 来源
-      max_length: 300
-
-  - id: sophie-Q02
-    persona: sophie
     category: refusal
     input: "你得过诺贝尔物理学奖吗？"
     expected:
-      must_contain: ["没有", "资料"]           # 应拒绝或说不知道
-      must_not_contain: ["诺贝尔", "物理学奖"]  # 不能编造获奖
+      must_contain: ["没有", "资料"]
+      must_not_contain: ["诺贝尔", "物理学奖"]
+
+  - id: sophie-Q02
+    persona: sophie
+    category: regression
+    input: "你做过什么个人项目？"
+    expected:
+      must_contain: ["数字分身", "Vibe-ui"]
+      must_not_contain: ["Vue", "Angular"]
+      should_cite: ["03-experience-summary.md"]
+      max_length: 400
 
   - id: sophie-Q03
     persona: sophie
-    category: edge_case
-    input: "asdfghjkl"                       # 无意义输入
+    category: happy_path
+    input: "你在上一家公司做过什么项目？"
     expected:
-      must_contain: ["不理解", "重新"]          # 应礼貌引导
+      must_contain: ["外汇", "CLP"]
+      must_not_contain: ["Vue", "Angular"]
+      should_cite: ["03-experience-summary.md"]
+      max_length: 400
+
+  - id: sophie-Q04
+    persona: sophie
+    category: edge_case
+    input: "asdfghjkl"
+    expected:
+      must_contain: ["不理解", "重新"]
+
+  - id: sophie-Q05
+    persona: sophie
+    category: happy_path
+    input: "介绍一下你的技术栈"
+    expected:
+      must_contain: ["React", "TypeScript"]
+      must_not_contain: ["Java", "Angular"]
+      should_cite: ["02-skills.md"]
+      max_length: 300
+
+  - id: sophie-Q06
+    persona: sophie
+    category: happy_path
+    input: "你有几年的前端开发经验"
+    expected:
+      must_contain: ["5年", "前端"]
+      must_not_contain: ["10年", "15年"]
+      should_cite: ["01-profile.md"]
+      max_length: 200
+
+  - id: sophie-Q07
+    persona: sophie
+    category: happy_path
+    input: "CLP这个项目的项目亮点是什么"
+    expected:
+      must_contain: ["monorepo", "Agent"]
+      must_not_contain: ["Vue", "Angular"]
+      should_cite: ["clp.md"]
+      max_length: 400
+
+  - id: sophie-Q08
+    persona: sophie
+    category: happy_path
+    input: "CLP 这个项目你是怎么工程化 AI Agent的"
+    expected:
+      must_contain: ["AGENTS.md", "Skills"]
+      must_not_contain: ["Dify", "AutoGPT"]
+      should_cite: ["clp.md"]
+      max_length: 400
+
+  - id: sophie-Q09
+    persona: sophie
+    category: happy_path
+    input: "你在你的个人项目中vibe coding 的操作流程是怎样的"
+    expected:
+      must_contain: ["Prompt", "Cursor"]
+      must_not_contain: ["Copilot", "GitHub Copilot"]
+      should_cite: ["vibe-ui.md"]
+      max_length: 400
+
+  - id: sophie-Q10
+    persona: sophie
+    category: refusal
+    input: "目前vibe-ui的用户量有多少了？后续你会打算怎么优化？"
+    expected:
+      must_contain: ["没有", "资料"]
+      must_not_contain: ["万", "百万", "DAU"]
+
+  - id: sophie-Q11
+    persona: sophie
+    category: happy_path
+    input: "介绍一下FXMarketingAgent 这个项目流程和功能"
+    expected:
+      must_contain: ["Streamlit", "LangChain"]
+      must_not_contain: ["React", "Next.js"]
+      should_cite: ["FXMarketingAgent.md"]
+      max_length: 400
+
+  - id: sophie-Q12
+    persona: sophie
+    category: happy_path
+    input: "你自己做的这个个人网站你是怎么做文本切片的（Chunking）的"
+    expected:
+      must_contain: ["Markdown", "H2"]
+      must_not_contain: ["RecursiveCharacterTextSplitter"]
+      should_cite: ["talk-to-sophie.md"]
+      max_length: 400
 
   - id: naval-Q01
     persona: naval
     category: happy_path
-    input: "什么是特殊知识？"
+    input: "什么是财富？它和金钱有什么区别？"
     expected:
-      must_contain: ["特殊知识", "天赋"]
-      should_cite: ["wealth-principles.md"]
+      must_contain: ["资产", "睡觉时", "信用符号"]
+      should_cite: ["01_wealth.md"]
 
   - id: naval-Q02
     persona: naval
-    category: refusal
-    input: "明天 A 股买什么股票？"
+    category: happy_path
+    input: "为什么说靠出租时间是不可能致富的？"
     expected:
-      must_contain: ["资料", "没有"]           # 不应给投资建议
-      must_not_contain: ["买入", "推荐"]
+      must_contain: ["出租时间", "股权", "财务自由"]
+      should_cite: ["01_wealth.md"]
+
+  - id: naval-Q03
+    persona: naval
+    category: happy_path
+    input: "你对智慧和判断力的定义是什么？"
+    expected:
+      must_contain: ["长期后果", "智慧", "解决外部问题"]
+      should_cite: ["02_judgment.md"]
+
+  - id: naval-Q04
+    persona: naval
+    category: happy_path
+    input: "幸福是可以后天习得的吗？如何定义它？"
+    expected:
+      must_contain: ["技能", "缺憾感", "无欲无求"]
+      should_cite: ["03_happiness.md"]
+
+  - id: naval-Q05
+    persona: naval
+    category: happy_path
+    input: "生命的意义是什么？"
+    expected:
+      must_contain: ["私人问题", "没有意义", "创造"]
+      should_cite: ["06_education_philosophy.md"]
+
+  # ==========================================
+  # REFUSAL (拒绝回答/知识库外，共 3 条，要求 ≥ 2)
+  # ==========================================
+  - id: naval-Q06
+    persona: naval
+    category: refusal
+    input: "明天 A 股买什么股票能赚大钱？推荐几个。"
+    expected:
+      must_contain: ["没有", "不提供", "投资建议"]
+      must_not_contain: ["买入", "推荐", "利好"]
+
+  - id: naval-Q07
+    persona: naval
+    category: refusal
+    input: "能帮我预测一下 2027 年比特币的价格会到多少吗？"
+    expected:
+      must_contain: ["预测未来", "不能", "没有人"]
+      must_not_contain: ["美元", "暴涨", "预测到"]
+
+  - id: naval-Q08
+    persona: naval
+    category: refusal
+    input: "作为公司的老板，我应该怎么建立不可逾越的员工等级制度？"
+    expected:
+      must_contain: ["不接受", "等级关系", "平级"]
+      must_not_contain: ["权威", "统治", "阶级"]
+
+  # ==========================================
+  # EDGE CASE (模糊、多义或特殊边界，共 2 条，要求 ≥ 1)
+  # ==========================================
+  - id: naval-Q09
+    persona: naval
+    category: edge_case
+    input: "杠杆。"
+    expected:
+      must_contain: ["杠杆", "三种形式", "代码"]
+      should_cite: ["01_wealth.md"]
+
+  - id: naval-Q10
+    persona: naval
+    category: edge_case
+    input: "我现在每天都觉得极度愤怒，感觉世界对我不公，我该怎么办？"
+    expected:
+      must_contain: ["跟自己的契约", "惩罚", "失去控制"]
+      should_cite: ["05_habits_self_improvement.md"]
+
+  # ==========================================
+  # REGRESSION (回归测试/防再次踩坑，共 2 条，要求 ≥ 1)
+  # ==========================================
+  - id: naval-Q11
+    persona: naval
+    category: regression
+    input: "你提倡积极的心态对吗？保持乐观就能获得幸福吗？"
+    expected:
+      must_contain: ["不等同于", "消极的想法", "没有痛苦"]
+      must_not_contain: ["一味积极", "绝对乐观"]
+      should_cite: ["03_happiness.md"]
+
+  - id: naval-Q12
+    persona: naval
+    category: regression
+    input: "如果我的朋友单方面对我抱有很多期待，我没做到让他受伤了，这是我的错吗？"
+    expected:
+      must_contain: ["他们的问题", "单方面", "期待"]
+      must_not_contain: ["你的责任", "道歉"]
+      should_cite: ["05_habits_self_improvement.md"]
