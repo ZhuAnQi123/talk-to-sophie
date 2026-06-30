@@ -3,14 +3,19 @@ import { Globe } from "lucide-react";
 interface TopNavProps {
   lang: "zh" | "en";
   toggleLang: () => void;
+  showBrand: boolean;
 }
 
-export function TopNav({ lang, toggleLang }: TopNavProps) {
+export function TopNav({ lang, toggleLang, showBrand }: TopNavProps) {
   return (
-    <nav className="fixed top-0 left-0 w-full z-40 px-6 py-6 md:px-12 flex justify-between items-center mix-blend-difference">
-      <div className="text-xl font-extrabold tracking-tighter text-white">
-        {lang === "zh" ? "朱安琪 | Sophie Zhu" : "Sophie Zhu"}
-      </div>
+    <nav className="fixed top-0 left-0 w-full z-40 px-6 py-6 flex justify-between items-center mix-blend-difference">
+      <div
+        className={`text-xl md:text-2xl font-extrabold tracking-tighter text-white transition-opacity duration-500 ${
+          showBrand ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        {"Sophie Zhu"}
+      </div>{" "}
       <div className="flex items-center gap-6 md:gap-8 text-sm font-bold tracking-tight text-neutral-400">
         <a href="#hero" className="hover:text-white transition-colors">
           {lang === "zh" ? "对话" : "Chat"}

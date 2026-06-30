@@ -2,7 +2,7 @@ import { Lang, Persona } from "./types";
 
 export const INITIAL_MESSAGES: Record<Persona, Record<Lang, string>> = {
   sophie: {
-    zh: "Hi，我是朱安琪（Sophie）的 AI 交互分身。你可以直接点击下方的预设快捷问题，或者直接在输入框向我提问关于她的一切！",
+    zh: "Hi，我是Sophie的 AI 交互分身。你可以直接点击下方的预设快捷问题，或者直接在输入框向我提问关于她的一切！",
     en: "Hi, I'm Sophie Zhu's AI interactive twin. Click the preset questions below or type in the box to ask me anything about her!",
   },
   naval: {

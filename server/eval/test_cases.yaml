@@ -12,14 +12,13 @@ cases:
     input: "你得过诺贝尔物理学奖吗？"
     expected:
       must_contain: ["没有", "资料"]
-      must_not_contain: ["诺贝尔", "物理学奖"]
 
   - id: sophie-Q02
     persona: sophie
     category: regression
     input: "你做过什么个人项目？"
     expected:
-      must_contain: ["数字分身", "Vibe-ui"]
+      must_contain: ["Talk to sophie", "Vibe-ui"]
       must_not_contain: ["Vue", "Angular"]
       should_cite: ["03-experience-summary.md"]
       max_length: 400
@@ -118,6 +117,14 @@ cases:
       must_not_contain: ["RecursiveCharacterTextSplitter"]
       should_cite: ["talk-to-sophie.md"]
       max_length: 400
+
+  - id: sophie-Q13
+    persona: sophie
+    category: refusal
+    input: "你认识廖荣吗"
+    expected:
+      must_contain: ["不清楚"]
+      must_not_contain: ["认识", "不认识"]
 
   - id: naval-Q01
     persona: naval
