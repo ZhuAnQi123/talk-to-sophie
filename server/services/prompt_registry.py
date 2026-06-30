@@ -59,6 +59,17 @@ def build_system_message(
         
     prompt_config = load_prompt(persona, version)
     system_msg = prompt_config.get("system", "")
+    parts=[system_msg]
+
+    if prompt_config.get("cot_instruction"):
+        parts.append(prompt_config.get("cot_instruction"))
+
+    if prompt_config.get("few_shot"):
+        parts.append("## 回答示例")
+        for ex in prompt_config.get("few_shot"):
+            parts.append(f"用户: {ex['user']}")
+            parts.append(f"助手: {ex['assistant']}")
+        
     
     if rag_context:
         base_dir = os.path.dirname(os.path.dirname(__file__))
@@ -67,11 +78,12 @@ def build_system_message(
             env = Environment(loader=FileSystemLoader(templates_dir))
             template = env.get_template("rag_context.j2")
             rag_addition = template.render(rag_context=rag_context)
-            system_msg = f"{system_msg}\n{rag_addition}"
+            parts.append[rag_addition]
         except Exception:
             # 找不到模板时的默认降级拼接方案
-            system_msg += f"\n请根据以下提供的知识库内容回答用户的问题，如果知识库内容无法回答用户的问题，请基于你的设定正常交流，不要编造资料中的内容。\n以下为知识库内容：\n{rag_context}"
+            parts.append('请根据以下提供的知识库内容回答用户的问题，如果知识库内容无法回答用户的问题，请基于你的设定正常交流，不要编造资料中的内容。\n以下为知识库内容：')
+            parts.append(rag_context)
             
-    return system_msg
+    return "\n\n".join(parts)
 
 
