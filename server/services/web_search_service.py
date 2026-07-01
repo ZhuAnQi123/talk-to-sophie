@@ -1,6 +1,6 @@
 from langchain_community.tools.tavily_search import TavilySearchResults
 
-def perform_web_search(query: str, top_k: int = 3):
+def perform_web_search(query: str, top_k: int = 8):
     """
     调用 OpenAI 的 Web Search API 进行网页搜索
      # 返回格式要求

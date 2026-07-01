@@ -1,143 +1,203 @@
 # Talk to Sophie Agent 概览与测试优化方案
 
-## 1) 当前 Agent 概览（基于代码与知识库）
+## 1) 当前 Agent 概览（现有代码与知识库逻辑）
 
-### 1.1 主链路（请求到回答）
+### 1.1 主链路逻辑（请求到回答）
+
 - 入口：`/api/chat` -> `build_and_stream_chat()`。
 - 查询改写：先用 `rewrite_search_query()` 把用户问题改写成检索 query（会处理“你/今年”等代词）。
-- RAG 检索：`retrieve(query, persona, top_k=3)` 从 Chroma 的 `{persona}_kb` 里取前 3 条片段。
-- 系统提示词组装：`build_system_message()` 把 persona prompt + 检索上下文拼成 system prompt。
+- 意图路由 + RAG 检索：`resolve_retrieval_params()` 推断 `top_k` 与 metadata 过滤，再调用 `retrieve()` 从 Chroma 的 `{persona}_kb` 取片段。
+- 上下文组装：按 `(source, title)` 去重合并 chunk，截断后拼成 XML 结构化 context。
+- 系统提示词组装：`build_system_message()` 把 persona prompt + CoT + few_shot + `rag_context.j2` 渲染结果拼成 system prompt。
 - 大模型输出：通过 LangChain `RunnableWithMessageHistory` 流式返回，保留最近 5 轮对话记忆。
 
 ### 1.2 数据来源与入库
+
 - 数据目录：`server/data/documents/{persona}`，sophie 的数据源在 `server/data/documents/sophie`（被 `.gitignore` 忽略）。
 - 切片策略：按 Markdown `##` 语义分段，超长段再做固定窗口切片。
 - 元数据：支持从文档中 `> metadata: ...` 提取字段（如 `type=self project`）。
 - 向量库：`data/chroma_data`，collection 为 `sophie_kb` / `naval_kb`。
 
-### 1.3 当前实现里和效果相关的关键点
-- 检索默认 `top_k=3`，对“列举所有项目/所有经历”这类聚合问题容易召回不全。
-- 检索没有按 metadata 过滤（虽然代码支持 `filters` 参数，但聊天主链路没有用）。
-- `v1.1` prompt 强依赖“按 metadata.type 全量扫描”，但系统并未实现“先识别意图再走过滤检索”。
-- `build_and_stream_chat()` 默认没有显式传 prompt version；若环境变量没切到 `1.1`，实际仍可能在跑 `v1.0`。
+### 1.3 知识库 metadata 类型一览（sophie）
+
+| type              | 示例文档                            | 用途               |
+| ----------------- | ----------------------------------- | ------------------ |
+| `profile`         | `01-profile.md`                     | 基本信息、定位     |
+| `skill`           | `02-skills.md`                      | 技术技能           |
+| `experience`      | `03-experience.md`                  | 工作/学习经历      |
+| `company project` | `projects/fx-marketing-agent.md` 等 | 公司项目           |
+| `project`         | `projects/welab-bank-website.md`    | 公司项目（旧写法） |
+| `self project`    | `projects/talk-to-sophie.md` 等     | 个人项目           |
 
 ---
 
-## 2) 你这 3 个测试问题的原因分析
+## 2) 2026-07 实测问题（`测试文件.md`）与根因
 
-### 问题 A：`你有过几段工作经历`
-**现象**：回答把“公司工作经历”和“个人项目”混在一起，段数不准。  
-**根因**：
-1. 检索是向量 TopK，不是结构化统计。`top_k=3` 只能拿到少量片段，且可能混入“个人项目”段落。  
-2. `03-experience-summary.md` 同时包含“工作经历”和“个人项目实践”，如果不做 `type` 过滤，模型很容易混答。  
-3. 目前没有“先分类再回答”的强约束（如 company_experience vs self_project）。
+### 测试 1：「你在上一架公司呆了.a几年」
 
-### 问题 B：`你在上家公司里待了几年`
-**现象**：回答“不知道”。  
-**根因**：
-1. 这类问题需要“时间定位 + 计算”两步：先找对公司，再算年份；TopK 检索经常拿不到包含时间区间的关键 chunk。  
-2. system prompt 没有明确要求“当命中起止时间时进行年份换算并给出计算依据”。  
-3. 语义歧义（“上家公司”在口语中可能指当前公司前一段或最近一段），模型没有触发澄清机制。
+**现象**：
 
-### 问题 C：`你做过什么个人项目（所有的都回答）`
-**现象**：第一次只答 1 个，追问后也不全。  
+- 大量语气词（「啊」「让我想想」）
+- 没有正面回答，绕来绕去
+- 编造「去年年底离开」「两年多」——与知识库 `2021.11 - 2026.07（共4年08个月）` 完全不符
+- 末尾引导提问（「你是不是也在考虑换工作？」）
+
 **根因**：
-1. 核心仍是召回覆盖不足：`top_k=3` 对“列举全部”天然不稳。  
-2. 文档切片以 `##` 为主，若多个项目分散在不同文档/段落，TopK 很难一次覆盖。  
-3. prompt 虽然写了“全面扫描”，但当前系统并没有真正执行“全库扫描 + 去重汇总”。
+
+1. **P0 Bug**：`grouped_results` 循环未写入文本，RAG context 始终为空，模型在无资料情况下自由发挥。
+2. 前端展示的「知识库来源」来自 `retrieved_results`，**不等于**模型实际读到了这些内容。
+3. prompt version 默认不一致（`load_prompt` 默认 1.1，`build_system_message` 曾默认 1.0）。
+4. `few_shot` 在 YAML 中定义了两次，「诚实拒答」示例被覆盖。
+5. CoT 曾要求「引导性结尾」，与 system 规则矛盾。
+
+### 测试 2：「你的上一家公司是什么」
+
+**现象**：
+
+- 回答「科技公司」「产品管理」——知识库明确是「汇立银行 Welab Bank · 前端开发工程师（AI应用方向）」
+- 编造「规模不大但氛围好」「自由职业」
+
+**根因**：同上，核心是无 RAG 正文 + 幻觉。
+
+### 测试 3：「简单说说你的工作经历，不要绕弯子」
+
+**现象**：稍好但仍错——说「三段经历含自由职业者」，知识库只有 **2 段公司经历**。
+
+**根因**：即使明确要求简洁，没有资料注入时模型仍会编造。
+
+### 问题汇总（用户观察的 4 点）
+
+| # | 问题 | 直接原因 |
+| --- | --- | --- |
+| 1 | 语气词多、不专业 | 无 KB 约束 + v1.0 可能在跑 + few_shot 示范不足 |
+| 2 | 不正面回答问题 | KB 未注入，模型不知道 Welab Bank 起止时间 |
+| 3 | 编造经历/岗位/离职时间 | **纯幻觉**，检索到了但没喂给模型 |
+| 4 | 乱引导用户继续提问 | CoT「引导性结尾」+ few_shot 末尾「我很乐意分享」 |
 
 ---
 
 ## 3) 代码层面发现的隐性风险（建议优先修）
 
-1. `server/services/prompts/sophie/v1.1.yaml` 中 `few_shot` 定义了两次，前一段会被后一段覆盖。  
-2. `build_system_message()` 里 `parts.append[rag_addition]` 是写法错误（应为 `parts.append(...)`），现在依赖异常分支兜底。  
-3. `server/services/prompts/rag_context.j2` 为空，导致模板分支没有实际价值。  
-4. `.gitignore` 忽略 `server/data/documents/sophie`，团队协作下非常容易出现“本地有文档、他人环境无文档、效果不一致”。
+### 已修复 ✅
+
+1. **`grouped_results` 循环缺失 append** — 已补全写入 + 文本去重。
+2. **prompt version 默认不一致** — `build_system_message()` 默认改为 `1.1`，与 `load_prompt()` 对齐。
+3. **`few_shot` 重复定义** — 已合并为一个列表，含：技能、诚实拒答、待了几年、公司项目。
+4. **`rag_context.j2` 为空** — 已补全模板，注入使用说明 + `{{ rag_context }}`。
+5. **`v1.1.yaml` 中 `{{ rag_context }}` 占位符** — 已从 system 移除（由 `build_system_message` 统一注入）。
+6. **CoT「引导性结尾」** — 已删除。
+7. **metadata 意图路由** — 已在 `chat_service.py` 实现 `resolve_retrieval_params()`。
+
+### 仍待关注 ⚠️
+
+1. `.gitignore` 忽略 `server/data/documents/sophie`，团队协作下容易出现「本地有文档、他人环境无文档、效果不一致」。
+2. 「上一家公司」语义歧义：可能指 Welab Bank（当前/最近）或光速智能（前一家），模型应优先引用资料中的时间段，必要时澄清。
+3. 列举类问题仍依赖 TopK 召回，极端情况下可能漏项（P1 聚合回答器可进一步改善）。
 
 ---
 
 ## 4) 优化方案（按优先级）
 
-## P0（今天就能做，最小改动高收益）
+### P0（今天就能做，最小改动高收益）
 
-### P0-1 提升“列举类问题”的召回覆盖
-- 对关键词命中以下模式时，把 `top_k` 从 3 提升到 8~12：  
-  - `所有` / `全部` / `几段` / `哪些` / `分别` / `列举`  
-- 预期收益：项目/经历“漏答”明显下降。
+- [x] **P0-1** 提升「列举类问题」的召回覆盖
+  - 命中 `所有/全部/几段/哪些/分别/列举` 时 `top_k=12`，否则 `top_k=8`。
 
-### P0-2 加入 metadata 过滤路由（最关键）
-- 在 `build_and_stream_chat()` 前增加意图分类：
-  - “个人项目” -> `filters={"type":"self project"}`
-  - “工作经历/公司经历” -> `filters={"type":"experience"}`（需要补齐文档 metadata）
-- 预期收益：减少“工作经历答成项目经历”的混答。
+- [x] **P0-2** 加入 metadata 过滤路由
+  - 个人项目 → `{"type": "self project"}`
+  - 公司项目 → `{"type": {"$in": ["company project", "project"]}}`
+  - 工作经历/待了几年 → `{"type": "experience"}`
+  - 技能 → `{"type": "skill"}`
+  - 过滤无结果时自动降级为无过滤检索。
 
-### P0-3 修复 prompt/version 生效链路
-- 在请求参数中增加 `prompt_version`（或服务端固定灰度配置），并显式传给 `build_system_message()`。  
-- 避免“以为在测 v1.1，实际跑 v1.0”的偏差。
+- [x] **P0-3** 修复 prompt/version 生效链路
+  - `DEFAULT_PROMPT_VERSION` 默认 `1.1`。
 
-### P0-4 修复已知实现 bug
-- 修复 `parts.append[rag_addition]` -> `parts.append(rag_addition)`。  
-- 整理 `v1.1.yaml`，保留一个 `few_shot` 节点，避免配置被静默覆盖。
-
----
-
-## P1（1-3 天，稳定性显著提升）
-
-### P1-1 数据分层：把“经历”和“项目”拆文档
-- 建议拆成：
-  - `sophie/experience/*.md`
-  - `sophie/projects/*.md`
-- 每篇文档统一 metadata：`type`, `company`, `time_start`, `time_end`, `is_current`。
-
-### P1-2 加“聚合回答器”（Retriever 后处理）
-- 对列举类问题不要直接把 TopK 喂给 LLM，先做程序侧聚合：
-  1. 拉取更多候选 chunk（如 top_k=20）
-  2. 按 `source/title` 去重
-  3. 再截断成结构化摘要交给模型生成
-- 预期收益：回答更完整且不重复。
-
-### P1-3 时间计算规则化
-- 对“待了几年/多少年”增加规则：
-  - 识别 `YYYY.MM - 至今`、`YYYY - YYYY`
-  - 程序侧先算年限，再让模型润色输出
-- 预期收益：减少“明明有时间却答不知道”。
+- [x] **P0-4** 修复已知实现 bug
+  - `grouped_results` append + 去重
+  - 合并 `few_shot` 为一个节点
+  - 补全 `rag_context.j2`
 
 ---
 
-## P2（中期优化）
+### P1（1-3 天，稳定性显著提升）
 
-### P2-1 构建可执行评测闭环
-- 目前 `server/eval` 只有 `test_cases.yaml`，缺少完整 runner。
-- 建议补齐：
-  - 自动跑全部 case
-  - 输出通过率/失败原因
-  - 与 prompt 版本绑定对比（v1.0 vs v1.1）
+- [ ] **P1-1** 数据分层：统一 metadata 命名
+  - 建议将 `welab-bank-website.md` 的 `type=project` 改为 `type=company project`。
+  - 每篇文档统一：`type`, `company`, `time_start`, `time_end`。
 
-### P2-2 检索策略升级
-- 从纯向量检索升级为混合检索（BM25 + Dense）或加入重排（reranker）。
-- 对“列举类”和“事实计算类”走不同检索 pipeline（query intent routing）。
+- [ ] **P1-2** 加「聚合回答器」（Retriever 后处理）
+  - 列举类问题：拉 top_k=20 → 按 source/title 去重 → 截断后交给模型。
+  - 当前已有按 source/title 去重，可进一步增大列举类 top_k。
 
----
-
-## 5) 针对你当前 3 个问题的“目标回答标准”
-
-1. `你有过几段工作经历`  
-   - 应返回“2段公司经历”，并明确公司名、岗位、时间段。  
-
-2. `你在上家公司里待了几年`  
-   - 应返回“约5年（2021.11 至今，以当前年份计算）”，并给出简短计算依据。  
-   - 若“上家公司”语义不清，先澄清一次再答。  
-
-3. `你做过什么个人项目（所有）`  
-   - 应一次性列出全部个人项目（至少覆盖 `Talk to Sophie`、`念头驯养员`、`Vibe UI / Vibe Motion / Vibe UI Web`，如数据中定义为独立项目则逐项列出）。
+- [-] **P1-3** 时间计算规则化
+  - 知识库已写「共4年08个月」，优先让模型直接引用原文。
+  - 后续可加 functional-calling 做程序侧年限计算。
 
 ---
 
-## 6) 建议落地顺序（最实用）
-- 第一步：修 bug（append / duplicated few_shot / prompt version 显式化）。
-- 第二步：加意图路由 + metadata 过滤 + 列举类 top_k 提升。
-- 第三步：补文档 metadata 与目录分层。
-- 第四步：补 eval runner，形成“改一次、测一次、可回归”。
+### P2（中期优化）
 
-按这个顺序执行后，你遇到的 3 类问题会明显下降，且后续扩知识库时不会反复踩坑。
+- [ ] **P2-1** 构建可执行评测闭环（`server/eval/test_cases.yaml` + runner）
+- [ ] **P2-2** 混合检索 / reranker
+
+---
+
+## 5) 针对测试问题的「目标回答标准」
+
+1. **`你在上一家公司待了几年`**
+   - 应返回：「在汇立银行（Welab Bank）约 4 年 8 个月（2021.11 - 2026.07）。」
+   - 若用户意指「光速智能」，应返回约 1 年 4 个月（2020.06 - 2021.10）。
+
+2. **`你的上一家公司是什么`**
+   - 应返回：「汇立银行（Welab Bank），岗位是前端开发工程师（AI 应用方向）。」
+
+3. **`你有过几段工作经历`**
+   - 应返回 2 段：汇立银行、光速智能，附时间段。
+
+4. **`你做过什么个人项目（所有）`**
+   - 应覆盖：`Talk to Sophie`、`念头驯养员`、`Vibe UI` 等（metadata `type=self project`）。
+
+---
+
+## 6) 关键实现说明（给维护者）
+
+### 6.1 `rag_context.j2` 怎么写
+
+Jinja2 模板只负责「包一层说明文字」，真正的文档内容由 Python 拼好后传入 `rag_context` 变量：
+
+```jinja2
+## 参考资料
+...使用规则说明...
+{{ rag_context }}
+```
+
+渲染入口在 `prompt_registry.py` → `build_system_message()`：
+
+```python
+template = env.get_template("rag_context.j2")
+rag_addition = template.render(rag_context=rag_context)
+parts.append(rag_addition)
+```
+
+`rag_context` 的内容由 `chat_service.py` 生成，格式为多个 `<document>` XML 块。
+
+### 6.3 metadata 过滤怎么做
+
+1. 入库时：`chunker.py` 从 `> metadata: type=experience` 解析进 Chroma metadata。
+2. 检索前：`resolve_retrieval_params()` 用正则匹配用户意图 → 返回 `(top_k, filters)`。
+3. 检索时：`retrieve(..., filters={"type": "experience"})` 传给 Chroma `where` 参数。
+4. 降级：过滤后 0 条结果 → 去掉 filter 重检。
+
+扩展新类型时：在知识库文档加 metadata，再在 `resolve_retrieval_params()` 加一条正则分支即可。
+
+---
+
+## 7) 建议落地顺序
+
+1. ✅ 修 bug（grouped_results / version / few_shot / rag_context.j2）
+2. ✅ 加意图路由 + metadata 过滤 + 列举类 top_k 提升
+3. ⬜ 统一文档 metadata 命名（`project` → `company project`）
+4. ⬜ 补 eval runner，改一次测一次可回归
+
+按此顺序，测试文件中的语气词、编造、不正面回答问题应明显改善。修完后请用 `测试文件.md` 中 3 个 case 重新验证。

@@ -6,12 +6,12 @@ from datetime import datetime
 #**实现提示：**
 #- 用 `PyYAML` 读 YAML（加入 `requirements.txt`）
 #- `rag_context.j2` 用 Jinja2 渲染（`pip install jinja2`）
-#- 默认 version 从环境变量 `DEFAULT_PROMPT_VERSION=1.0` 读取
+#- 默认 version 从环境变量 `DEFAULT_PROMPT_VERSION=1.1` 读取
 
 def load_prompt(persona: str, version: str = None) -> dict:
     """从 YAML 加载指定 persona + version 的 prompt 配置"""
     if version is None:
-        version = os.getenv("DEFAULT_PROMPT_VERSION", "1.0")
+        version = os.getenv("DEFAULT_PROMPT_VERSION", "1.1")
 
     base_dir = os.path.dirname(os.path.dirname(__file__))
     # 根据目录结构 server/prompts/<persona>/v<version>.yaml 构造路径
@@ -55,7 +55,7 @@ def build_system_message(
 ) -> str:
     """组装最终 system message：base system + RAG context"""
     if version is None:
-        version = os.getenv("DEFAULT_PROMPT_VERSION", "1.0")
+        version = os.getenv("DEFAULT_PROMPT_VERSION", "1.1")
         
     prompt_config = load_prompt(persona, version)
     system_msg = prompt_config.get("system", "")
@@ -78,10 +78,10 @@ def build_system_message(
             env = Environment(loader=FileSystemLoader(templates_dir))
             template = env.get_template("rag_context.j2")
             rag_addition = template.render(rag_context=rag_context)
-            parts.append[rag_addition]
+            parts.append(rag_addition)
         except Exception:
             # 找不到模板时的默认降级拼接方案
-            parts.append('请根据以下提供的知识库内容回答用户的问题，如果知识库内容无法回答用户的问题，请基于你的设定正常交流，不要编造资料中的内容。\n以下为知识库内容：')
+            parts.append('请根据以下提供的知识库内容回答用户的问题，如果知识库内容无法回答用户的问题，请基于你的设定正常交流，不要编造资料中的内容。参考的资料文档都已经按来源（source）和标题（title）分类。\n以下为知识库内容：')
             parts.append(rag_context)
             
     return "\n\n".join(parts)
