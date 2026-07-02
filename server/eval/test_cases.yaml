@@ -11,7 +11,8 @@ cases:
     category: refusal
     input: "你得过诺贝尔物理学奖吗？"
     expected:
-      must_contain: ["没有", "资料"]
+      must_contain: ["不知道", "资料"]
+      must_not_contain: ["有"]
 
   - id: sophie-Q02
     persona: sophie

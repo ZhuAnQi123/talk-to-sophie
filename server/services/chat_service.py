@@ -78,7 +78,7 @@ def resolve_retrieval_params(user_message: str, search_query: str) -> tuple[int,
     return top_k, filters
 
 
-def build_and_stream_chat(user_message: str, persona: str, session_id: str = "default_session", web_search: bool = False):
+def build_and_stream_chat(user_message: str, persona: str, session_id: str = "default_session", web_search: bool = False, prompt_version: str = None):
 
     """
     暴露给 main.py 的主干函数：返回 (流式生成器, sources)
@@ -154,7 +154,7 @@ def build_and_stream_chat(user_message: str, persona: str, session_id: str = "de
     context = "\n\n".join(structured_results)
 
     sources=unique_sources
-    system_prompt=build_system_message(persona, rag_context=context)
+    system_prompt=build_system_message(persona, rag_context=context, version=prompt_version)
 
     # 4. 组装 sources 供前端引用展示
     sources = [

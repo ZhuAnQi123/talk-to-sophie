@@ -42,7 +42,7 @@ def build_context_prompt(persona: str, user_message: str, history:str)->str:
     if history.messages:
         recent_msgs = history.messages[-4:]
         history_text = "\n".join([f"{msg.type}: {msg.content}" for msg in recent_msgs])
-    prompt_text = f"当前系统年份：{current_year}年。请将用户的最新提问重写为适合用于搜索引擎和知识库检索的独立查询语句。要求：\n1. 如果提问中包含'你'、'你的'等代词，必须明确替换为'{persona_name}'。\n2. 如果包含“今年”、“去年”、“目前”等时间代词，必须替换为具体的年份（例如将“今年”替换为“{current_year}年”）。\n3. 结合对话历史补全缺失的上下文信息。\n4. 直接输出重写后的查询语句，不要包含任何标点符号、解释或回答。\n\n对话历史：\n{history_text}\n\n用户最新提问：{user_message}"
+    prompt_text = f"当前系统年份：{current_year}年。请将用户的最新提问重写为适合用于搜索引擎和知识库检索的独立查询语句。要求：\n1. 如果提问中包含'你'、'你的'等代词，必须明确替换为'{persona_name}'。并务必保留用户提问中的关键细节和多个并列意图（如“几年”，“什么岗位”等等）\n2. 如果包含“今年”、“去年”、“目前”等时间代词，必须替换为具体的年份（例如将“今年”替换为“{current_year}年”）。\n3. 结合对话历史补全缺失的上下文信息。\n4. 直接输出重写后的查询语句，不要包含任何标点符号、解释或回答。\n\n对话历史：\n{history_text}\n\n用户最新提问：{user_message}"
 
     return prompt_text
 
