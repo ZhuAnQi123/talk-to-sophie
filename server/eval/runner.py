@@ -62,7 +62,12 @@ async def run_eval(prompt_version:str)->dict:
         if score["passed"]:
             report["passed"]+=1
         else:
-            report["failed_cases"].append(case)
+            report["failed_cases"].append({
+                "id": case.get("id", "Unknown"),
+                "input": case.get("input", ""),
+                "reasons": score.get("fail_reasons", []),
+                "actual_text": res.get("response_text", "")
+            })
 
     await print_report(report)
     return report

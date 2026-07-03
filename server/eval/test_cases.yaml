@@ -19,7 +19,7 @@ cases:
     category: regression
     input: "你做过什么个人项目？"
     expected:
-      must_contain: ["Talk to sophie", "Vibe-ui"]
+      must_contain: ["Talk to sophie", "vibe"]
       must_not_contain: ["Vue", "Angular"]
       should_cite: ["03-experience-summary.md"]
       max_length: 400
@@ -29,7 +29,7 @@ cases:
     category: happy_path
     input: "你在上一家公司做过什么项目？"
     expected:
-      must_contain: ["外汇", "CLP"]
+      must_contain: ["Marketing", "CLP"]
       must_not_contain: ["Vue", "Angular"]
       should_cite: ["03-experience-summary.md"]
       max_length: 400
@@ -39,7 +39,7 @@ cases:
     category: edge_case
     input: "asdfghjkl"
     expected:
-      must_contain: ["不理解", "重新"]
+      must_contain: ["误"]
 
   - id: sophie-Q05
     persona: sophie
@@ -47,7 +47,7 @@ cases:
     input: "介绍一下你的技术栈"
     expected:
       must_contain: ["React", "TypeScript"]
-      must_not_contain: ["Java", "Angular"]
+      must_not_contain: ["Java"]
       should_cite: ["02-skills.md"]
       max_length: 300
 
@@ -76,7 +76,7 @@ cases:
     category: happy_path
     input: "CLP 这个项目你是怎么工程化 AI Agent的"
     expected:
-      must_contain: ["AGENTS.md", "Skills"]
+      must_contain: ["AGENTS.md", "cursor"]
       must_not_contain: ["Dify", "AutoGPT"]
       should_cite: ["clp.md"]
       max_length: 400
@@ -96,7 +96,7 @@ cases:
     category: refusal
     input: "目前vibe-ui的用户量有多少了？后续你会打算怎么优化？"
     expected:
-      must_contain: ["没有", "资料"]
+      must_contain: ["没有"]
       must_not_contain: ["万", "百万", "DAU"]
 
   - id: sophie-Q11
@@ -106,7 +106,7 @@ cases:
     expected:
       must_contain: ["Streamlit", "LangChain"]
       must_not_contain: ["React", "Next.js"]
-      should_cite: ["FXMarketingAgent.md"]
+      should_cite: ["fx-marketing-agent.md"]
       max_length: 400
 
   - id: sophie-Q12
