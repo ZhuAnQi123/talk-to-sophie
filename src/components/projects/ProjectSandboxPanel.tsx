@@ -90,9 +90,14 @@ export function ProjectSandboxPanel({ lang, activeProject }: ProjectSandboxPanel
               ))}
             </div>
 
-            <button className="w-full bg-white text-black py-3 rounded-xl text-sm font-bold hover:bg-neutral-200 transition-colors cursor-pointer text-center">
-              {lang === "zh" ? "深度解析该线上产品 +" : "Deep Dive into this Product +"}
-            </button>
+            <a
+              href={activeProject.url && activeProject.url !== "#" ? activeProject.url : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-white text-black py-3 rounded-xl text-sm font-bold hover:bg-neutral-200 transition-colors cursor-pointer text-center block"
+            >
+              {lang === "zh" ? "查看作品 +" : "Deep Dive into this Product +"}
+            </a>
           </motion.div>
         )}
       </AnimatePresence>
