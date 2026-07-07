@@ -33,11 +33,11 @@ export const PROJECTS_DATA = {
       desc: "面向 AI 编程的设计与动效 Prompt 基础设施。将复杂的 UI 规范和 Framer Motion 物理参数沉淀为可执行的 Markdown Skill。提供统一检索与代码一键分发能力，减少大模型生成代码的随机性。",
       url: "http://vibe-ui-prompt.online/",
       consoleLogs: [
-        "🎨 Parsing design tokens and Framer Motion spring configs...",
-        "📝 Converting visual specifications into LLM-executable Markdown schemas...",
-        "🚀 Building unified catalog from multi-source frontmatter...",
-        "✨ Syncing URL query parameters for shareable aesthetic filters...",
-        "✅ Prompt successfully injected to Cursor / Claude context.",
+        " Installing @vibe-ui-n-motion/mcp via global registry...",
+        "🔌 Cursor connected to vibe-mcp server: command 'vibe-mcp' initialized [OK]",
+        "🤖 Tool calling: get_vibe_combo(ui='supabase', motions=['fluid-elastic'])",
+        "🧠 Resolving design tokens & physical motion parameters for Agent context...",
+        "✨ Prompt successfully injected to Cursor via MCP protocol. Enjoy Coding!",
       ],
     },
     2: {
@@ -77,11 +77,11 @@ export const PROJECTS_DATA = {
       desc: "A design and motion Prompt infrastructure for AI coding. Encapsulates complex UI specifications and Framer Motion physical parameters into executable Markdown Skills. Provides unified retrieval and one-click code distribution to reduce LLM generation randomness.",
       url: "http://vibe-ui-prompt.online/",
       consoleLogs: [
-        "🎨 Parsing design tokens and Framer Motion spring configs...",
-        "📝 Converting visual specifications into LLM-executable Markdown schemas...",
-        "🚀 Building unified catalog from multi-source frontmatter...",
-        "✨ Syncing URL query parameters for shareable aesthetic filters...",
-        "✅ Prompt successfully injected to Cursor / Claude context.",
+        "📦 Installing @vibe-ui-n-motion/mcp via global registry...",
+        "🔌 Cursor connected to vibe-mcp server: command 'vibe-mcp' initialized [OK]",
+        "🤖 Tool calling: get_vibe_combo(ui='supabase', motions=['fluid-elastic'])",
+        "🧠 Resolving design tokens & physical motion parameters for Agent context...",
+        "✨ Prompt successfully injected to Cursor via MCP protocol. Enjoy Coding!",
       ],
     },
     2: {

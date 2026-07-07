@@ -71,7 +71,7 @@ export function ProjectSandboxPanel({ lang, activeProject }: ProjectSandboxPanel
 
             <div className="bg-black/80 rounded-2xl p-5 border border-neutral-800/80 font-mono text-xs my-6 flex-1 space-y-2">
               <div className="flex items-center gap-2 border-b border-neutral-800 pb-2 text-neutral-500 mb-3">
-                <Terminal size={12} /> TELEMETRY STREAM LOGS
+                <Terminal size={12} /> TELEMETRY
               </div>
               {activeProject.consoleLogs.map((log, index) => (
                 <motion.p
