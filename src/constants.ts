@@ -114,3 +114,11 @@ export const PROJECTS_DATA = {
     },
   }
 };
+
+// 个人联系配置 (使用 Base64 混淆防止爬虫在静态源码中直接正则扫描到邮箱)
+const OBFUSCATED_EMAIL = "emFxMTE3MDg1NDI1MkAxNjMuY29t"; // "zaq1170854252@163.com" 的 Base64
+
+export const CONTACT_CONFIG = {
+  // 运行时动态解码，兼顾防爬与使用体验
+  getEmail: () => atob(OBFUSCATED_EMAIL),
+};
